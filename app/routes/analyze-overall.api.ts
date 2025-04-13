@@ -18,7 +18,7 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<Response>
 
   try {
     // 記事データを取得
-    const response = await fetch("http://localhost:3000/scraping/project/1", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/1`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

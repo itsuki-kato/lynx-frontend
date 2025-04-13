@@ -29,7 +29,7 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <a href="http://localhost:3000/auth/google" className="w-full">
+              <a href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`} className="w-full">
                 <Button 
                   variant="outline" 
                   className="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 flex items-center justify-center gap-2 h-12 transition-all duration-300 hover:shadow-md"

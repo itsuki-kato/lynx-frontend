@@ -14,7 +14,7 @@ export async function requireAuth(request: Request) {
   }
 
   try {
-    const res = await fetch("http://localhost:3000/user/me", {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/user/me`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -48,7 +48,7 @@ export async function requireAuth(request: Request) {
 }
 
 async function refreshAccessToken(refreshToken: string) {
-  const res = await fetch("http://localhost:3000/auth/refresh", {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

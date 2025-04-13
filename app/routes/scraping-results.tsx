@@ -97,7 +97,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       }
 
       // APIを呼び出し
-      const response = await fetch("http://localhost:3000/scraping", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

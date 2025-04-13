@@ -26,7 +26,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
   try {
     // APIを呼び出し
-    const response = await fetch("http://localhost:3000/scraping/project/1", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/1`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

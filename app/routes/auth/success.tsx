@@ -14,7 +14,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     }
 
     // アクセストークンを使ってユーザー情報を取得
-    const res = await fetch("http://localhost:3000/user/me", {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/user/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

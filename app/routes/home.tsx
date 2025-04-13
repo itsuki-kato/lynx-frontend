@@ -19,7 +19,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   const user = session.get("user");
 
   try {
-    const res = await fetch("http://localhost:3000/scraping", {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping`, {
       headers: {
         Authorization: `Bearer ${token}`,
       }

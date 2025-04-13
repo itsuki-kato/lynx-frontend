@@ -34,7 +34,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
   try {
     // content.tsxと同じAPIエンドポイントを使用
-    const response = await fetch("http://localhost:3000/scraping/project/1", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/1`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -85,7 +85,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
   try {
     // 特定の記事データを取得
-    const response = await fetch(`http://localhost:3000/scraping/${articleId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/${articleId}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
