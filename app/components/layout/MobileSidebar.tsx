@@ -1,5 +1,6 @@
 import { Link, Form } from "react-router";
 import { Button, buttonVariants } from "~/components/ui/button"; // buttonVariants をインポート
+import { Home, Search, FileText, Settings, LogOut, Link2 } from 'lucide-react'; // アイコンをインポート
 import {
   Sheet,
   SheetContent,
@@ -19,14 +20,15 @@ interface MobileSidebarProps {
  * @param {MobileSidebarProps} props - コンポーネントのプロパティ
  */
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
-  // Sidebar.tsx と同じナビゲーションアイテム
+  // Sidebar.tsx と同じナビゲーションアイテムに更新
   const navItems = [
-    { to: "/", label: "Dashboard" },
-    { to: "/scraping", label: "サイト分析" },
-    { to: "/content", label: "コンテンツ管理" },
-    { to: "/users", label: "Users" },
-    { to: "/reports", label: "Reports" },
-    { to: "/settings", label: "Settings" },
+    { to: "/", label: "Dashboard", icon: Home },
+    { to: "/scraping", label: "サイト分析", icon: Search },
+    { to: "/content", label: "コンテンツ管理", icon: FileText },
+    { to: "/internal-link-matrix", label: "内部リンクマトリクス", icon: Link2 }, // 内部リンクマトリクスを追加
+    // { to: "/users", label: "Users" }, // 不要なアイテムをコメントアウト
+    // { to: "/reports", label: "Reports" }, // 不要なアイテムをコメントアウト
+    { to: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (
@@ -56,6 +58,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     "w-full justify-start text-muted-foreground hover:bg-primary hover:text-primary-foreground" // カスタムスタイル
                   )}
                 >
+                  {item.icon && <item.icon className="mr-2 h-4 w-4" />} {/* アイコン表示 */}
                   {item.label}
                 </Link>
               </SheetClose>
@@ -70,6 +73,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 variant="ghost"
                 className="w-full justify-start text-muted-foreground hover:text-destructive-foreground hover:bg-destructive"
               >
+                <LogOut className="mr-2 h-4 w-4" /> {/* ログアウトアイコン */}
                 Logout
               </Button>
             </SheetClose>

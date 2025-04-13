@@ -12,6 +12,10 @@ export default defineConfig({
     },
   },
   plugins: [reactRouter(), tsconfigPaths()],
+  // クライアントサイドで環境変数を利用可能にする
+  define: {
+    'import.meta.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY),
+  },
   server: { // server プロパティを追加
     proxy: {
       // /api で始まるリクエストをプロキシする

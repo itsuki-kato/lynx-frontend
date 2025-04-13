@@ -87,8 +87,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Main Content */}
           {/* サイドバーの有無に応じてマージンを調整 (md以上でサイドバー表示時) */}
+          {/* 最大幅(1536px)を設定し、中央揃えにする */}
           <main className={cn(
-            "flex-grow p-6 text-muted-foreground",
+            "flex-grow p-6 text-muted-foreground max-w-screen-2xl mx-auto w-full", // max-w-screen-2xl, mx-auto, w-full を追加
             !isLoginPage && "md:ml-64" // デスクトップサイドバーの幅(w-64)分マージンを追加
           )}>
             {children}
