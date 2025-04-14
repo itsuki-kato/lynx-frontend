@@ -21,8 +21,14 @@ export const startScrapingApi = async ({
   token,
   signal,
 }: StartScrapingParams): Promise<Response> => {
-  console.log("Calling startScrapingApi with:", { startUrl, targetClass });
-  const response = await fetch("/api/crawl/", {
+  // 環境変数からAPIのベースURLを取得（デフォルトは相対パス）
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  
+  // 完全なURLを構築
+  const apiUrl = `${apiBaseUrl}/crawl/`;
+  
+  console.log("Calling startScrapingApi with:", { startUrl, targetClass, apiUrl });
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -65,8 +71,14 @@ interface CancelScrapingParams {
 export const cancelScrapingApi = async ({
   jobId,
 }: CancelScrapingParams): Promise<Response> => {
-  console.log(`Calling cancelScrapingApi for job: ${jobId}`);
-  const response = await fetch(`/api/crawl/stop/${jobId}`, {
+  // 環境変数からAPIのベースURLを取得（デフォルトは相対パス）
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  
+  // 完全なURLを構築
+  const apiUrl = `${apiBaseUrl}/crawl/stop/${jobId}`;
+  
+  console.log(`Calling cancelScrapingApi for job: ${jobId} at ${apiUrl}`);
+  const response = await fetch(apiUrl, {
     method: "POST",
   });
 
