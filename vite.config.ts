@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     // VITE_API_BASE_URL もクライアントサイドで使えるように define に追加
     'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL),
+    'import.meta.env.SCRAPY_API_BASE_URL': JSON.stringify(env.SCRAPY_API_BASE_URL),
   },
   server: {
     proxy: {
