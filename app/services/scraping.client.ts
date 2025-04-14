@@ -22,7 +22,7 @@ export const startScrapingApi = async ({
   signal,
 }: StartScrapingParams): Promise<Response> => {
   // 環境変数からAPIのベースURLを取得（デフォルトは相対パス）
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const apiBaseUrl = import.meta.env.SCRAPY_API_BASE_URL || '';
   
   // 完全なURLを構築
   const apiUrl = `${apiBaseUrl}/crawl/`;
@@ -72,7 +72,7 @@ export const cancelScrapingApi = async ({
   jobId,
 }: CancelScrapingParams): Promise<Response> => {
   // 環境変数からAPIのベースURLを取得（デフォルトは相対パス）
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const apiBaseUrl = import.meta.env.SCRAPY_API_BASE_URL || '';
   
   // 完全なURLを構築
   const apiUrl = `${apiBaseUrl}/crawl/stop/${jobId}`;
