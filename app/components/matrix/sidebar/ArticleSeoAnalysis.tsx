@@ -1,6 +1,7 @@
 import type { ArticleItem } from '~/types/article';
 import { Button } from '~/components/ui/button';
-import { Sparkles, Loader2, ThumbsUp, ThumbsDown, AlertCircle, ArrowRight, Lightbulb, CheckCircle } from "lucide-react";
+import { Badge } from '~/components/ui/badge';
+import { Sparkles, Loader2, ThumbsUp, ThumbsDown, AlertCircle, ArrowRight, Lightbulb, CheckCircle, Link } from "lucide-react";
 import { useArticleAnalysis } from '~/hooks/use-article-analysis';
 
 /**
@@ -147,10 +148,10 @@ export function ArticleSeoAnalysis({ article, articleId }: ArticleSeoAnalysisPro
     <div className="space-y-4">
       {/* AI分析結果 */}
       <div>
-        <h3 className="font-semibold mb-2 flex items-center">
-          <Sparkles className="h-4 w-4 mr-2 text-primary" />
+        <Badge variant="outline" className="mb-3 border-indigo-500 text-indigo-500 inline-flex items-center">
+          <Sparkles className="h-4 w-4 mr-2" />
           AI SEO分析
-        </h3>
+        </Badge>
         {/* 分析実行ボタン */}
         {!isLoading && !hasData && !error && (
           <div className="bg-muted p-4 rounded-md text-center mb-4">
@@ -259,7 +260,10 @@ export function ArticleSeoAnalysis({ article, articleId }: ArticleSeoAnalysisPro
 
       {/* 基本的な内部リンク分析 */}
       <div>
-        <h3 className="font-semibold mb-2">内部リンク分析</h3>
+        <Badge variant="outline" className="mb-3 border-cyan-500 text-cyan-500 inline-flex items-center">
+          <Link className="h-4 w-4 mr-2" />
+          内部リンク分析
+        </Badge>
         <div className="bg-muted p-3 rounded-md">
           <ul className="space-y-2">
             {/* 内部リンクの状態に基づいた分析情報 */}
@@ -288,7 +292,10 @@ export function ArticleSeoAnalysis({ article, articleId }: ArticleSeoAnalysisPro
       </div>
 
       <div>
-        <h3 className="font-semibold mb-2">改善提案</h3>
+        <Badge variant="outline" className="mb-3 border-emerald-500 text-emerald-500 inline-flex items-center">
+          <Lightbulb className="h-4 w-4 mr-2" />
+          改善提案
+        </Badge>
         <div className="bg-muted p-3 rounded-md">
           <ul className="space-y-2 text-sm list-disc list-inside">
             {getSeoSuggestions(article).map((suggestion, index) => (

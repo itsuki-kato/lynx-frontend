@@ -1,7 +1,7 @@
 import type { ArticleItem, InternalLinkItem } from '~/types/article'; // InternalLink -> InternalLinkItem, LinkedFrom を削除
 import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { ExternalLink, Link as LinkIcon } from 'lucide-react';
+import { ExternalLink, Link as LinkIcon, ArrowRight } from 'lucide-react';
 
 interface ArticleLinksListProps {
   article: ArticleItem;
@@ -155,7 +155,10 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
       {/* 発リンク一覧 */}
       {showOutgoing && (
         <div>
-          <h3 className="font-semibold mb-3 text-lg">発リンク</h3>
+          <Badge variant="outline" className="mb-3 border-blue-500 text-blue-500 inline-flex items-center">
+            <ExternalLink className="h-4 w-4 mr-2" />
+            発リンク
+          </Badge>
           {Object.keys(groupedOutgoingLinks).length > 0 ? (
             <div className="space-y-4">
               {/* グルーピングされた発リンク情報をループ表示 */}
@@ -207,7 +210,10 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
       {/* 被リンク一覧 */}
       {showIncoming && (
         <div>
-          <h3 className="font-semibold mb-3 text-lg">被リンク</h3>
+          <Badge variant="outline" className="mb-3 border-green-500 text-green-500 inline-flex items-center">
+            <ArrowRight className="h-4 w-4 mr-2" />
+            被リンク
+          </Badge>
           {Object.keys(groupedIncomingLinks).length > 0 ? (
             <div className="space-y-4">
               {/* グルーピングされた被リンク情報をループ表示 */}

@@ -45,7 +45,10 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">
-            <Badge variant="outline" className="mb-1 border-blue-500 text-blue-500">発リンク元</Badge>
+            <Badge variant="outline" className="mb-3 border-blue-500 text-blue-500 inline-flex items-center">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              発リンク元
+            </Badge>
             <div>{source.metaTitle}</div>
           </CardTitle>
         </CardHeader>
@@ -67,7 +70,10 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">
-            <Badge variant="outline" className="mb-1 border-green-500 text-green-500">被リンク先</Badge>
+            <Badge variant="outline" className="mb-3 border-green-500 text-green-500 inline-flex items-center">
+              <ArrowRight className="h-4 w-4 mr-2" />
+              被リンク先
+            </Badge>
             <div>{target.metaTitle}</div>
           </CardTitle>
         </CardHeader>
@@ -88,7 +94,12 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
       {/* リンク情報 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">リンクテキスト</CardTitle>
+          <CardTitle className="text-lg">
+            <Badge variant="outline" className="mb-3 border-amber-500 text-amber-500 inline-flex items-center">
+              <Link className="h-4 w-4 mr-2" />
+              リンクテキスト
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="border rounded-md p-3 bg-muted/40 flex items-center">
