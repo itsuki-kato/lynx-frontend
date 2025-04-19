@@ -1,11 +1,12 @@
 import type { ArticleItem } from '~/types/article';
 import { Button } from '~/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { X, FileText, Link as LinkIcon, BarChart2, ExternalLink, ArrowDownToLine } from "lucide-react";
+import { X, FileText, Link as LinkIcon, BarChart2, ExternalLink, ArrowDownToLine, GripVertical } from "lucide-react";
 import { ArticleBasicInfo } from './ArticleBasicInfo';
 import { ArticleLinksList } from './ArticleLinksList';
 import { ArticleSeoAnalysis } from './ArticleSeoAnalysis';
 import { LinkDetailView } from './LinkDetailView';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // リンク情報を表示するための型
 interface LinkDetail {
@@ -22,11 +23,13 @@ interface ArticleDetailSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   articles: ArticleItem[]; // 全記事データを追加（リンク先/元の記事情報を取得するため）
+  onWidthChange?: (width: number) => void; // サイドバーの幅が変更されたときに呼び出されるコールバック
 }
 
 /**
  * 記事詳細を表示するサイドバーコンポーネント
  * SEO観点での内部リンク分析情報も表示
+ * リサイズ機能付き
  */
 export default function ArticleDetailSidebar({
   article,
@@ -36,11 +39,74 @@ export default function ArticleDetailSidebar({
   initialTab = 'basic', // デフォルト値を設定
   isOpen,
   onClose,
-  articles
+  articles,
+  onWidthChange
 }: ArticleDetailSidebarProps) {
   // 表示する記事データ（モードによって切り替え）
   const displayArticle = sidebarMode === 'articleDetail' ? article : null;
   const displayLink = sidebarMode === 'linkDetail' ? selectedLink : null;
+  
+  // サイドバーの幅を状態として管理
+  const [sidebarWidth, setSidebarWidth] = useState(600); // デフォルト幅を600pxに増加
+  const minWidth = 400; // 最小幅を400pxに設定
+  const maxWidth = 1200; // 最大幅を1200pxに拡大
+  
+  // リサイズ中かどうかの状態
+  const [isResizing, setIsResizing] = useState(false);
+  
+  // 前回のマウス位置を記録するためのref
+  const lastMouseXRef = useRef<number>(0);
+  
+  // サイドバーのref
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  
+  // リサイズ開始時の処理
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    lastMouseXRef.current = e.clientX;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none'; // テキスト選択を防止
+  }, []);
+  
+  // リサイズ中の処理
+  const handleResize = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const deltaX = lastMouseXRef.current - e.clientX;
+    lastMouseXRef.current = e.clientX;
+    
+    setSidebarWidth(prevWidth => {
+      const newWidth = prevWidth + deltaX;
+      // 最小・最大幅の制限を適用
+      return Math.max(minWidth, Math.min(newWidth, maxWidth));
+    });
+  }, [isResizing, minWidth, maxWidth]);
+  
+  // リサイズ終了時の処理
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    // 親コンポーネントに幅の変更を通知
+    if (onWidthChange) {
+      onWidthChange(sidebarWidth);
+    }
+  }, [sidebarWidth, onWidthChange]);
+  
+  // マウスイベントのリスナーを設定
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResize);
+      window.addEventListener('mouseup', handleResizeEnd);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleResize);
+      window.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [isResizing, handleResize, handleResizeEnd]);
 
   // どちらのデータもない場合は何も表示しない
   if (!displayArticle && !displayLink) {
@@ -49,9 +115,19 @@ export default function ArticleDetailSidebar({
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-[320px] sm:w-[400px] md:w-[480px] lg:w-[540px] bg-background/100 border-l border-border shadow-xl flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+      ref={sidebarRef}
+      className={`fixed top-[4rem] right-0 h-[calc(100vh-4rem)] bg-background/100 border-l border-border shadow-xl flex flex-col z-30 transition-all duration-300 ease-in-out ${isOpen ? 'w-auto' : 'w-0 overflow-hidden'}`}
+      style={{ width: isOpen ? `${sidebarWidth}px` : 0 }}
     >
+      {/* リサイズハンドル */}
+      <div
+        className="absolute top-0 left-0 w-1 h-full cursor-ew-resize group z-10"
+        onMouseDown={handleResizeStart}
+      >
+        <div className={`absolute top-1/2 left-0 transform -translate-y-1/2 w-4 h-12 flex items-center justify-center rounded-l-sm bg-gray-200 dark:bg-gray-700 opacity-0 group-hover:opacity-100 ${isResizing ? 'opacity-100' : ''} transition-opacity`}>
+          <GripVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+        </div>
+      </div>
       {/* ヘッダー (スクロールしない部分) */}
       <div className="p-6 flex justify-between items-center flex-shrink-0">
         <div>

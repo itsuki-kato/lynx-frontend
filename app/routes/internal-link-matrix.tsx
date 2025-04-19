@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 import { useLoaderData } from "react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "~/hooks/use-toast";
 import { getSession } from "~/utils/session.server";
 import { requireAuth } from "~/utils/auth.server";
@@ -129,6 +129,7 @@ export default function InternalLinkMatrixRoute() {
   const [linkListType, setLinkListType] = useState<'incoming' | 'outgoing' | null>(null);
   const [initialTab, setInitialTab] = useState<'basic' | 'links' | 'seo'>('basic');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(480); // サイドバーの幅を状態として管理
   const { toast } = useToast(); // エラー表示用
   const [searchTerm, setSearchTerm] = useState(""); // 検索語
   const [filterType, setFilterType] = useState<"all" | "hasLinks" | "noLinks" | "isolated" | "needsIncoming" | "needsOutgoing">("all");
@@ -215,6 +216,11 @@ export default function InternalLinkMatrixRoute() {
     // sidebarMode は閉じるときにリセットしなくても良いかもしれないが、念のため
     setSidebarMode('articleDetail');
   };
+  
+  // サイドバーの幅が変更されたときの処理
+  const handleSidebarWidthChange = useCallback((width: number) => {
+    setSidebarWidth(width);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] overflow-hidden">
@@ -267,16 +273,22 @@ export default function InternalLinkMatrixRoute() {
         </div>
       </div>
 
-      {/* マトリクス表示エリア（スクロール可能） */}
+      {/* マトリクス表示エリア */}
       <div className="flex-grow py-4 w-full overflow-hidden">
-        <div className={`border rounded-lg overflow-x-auto max-w-7xl ${isSidebarOpen ? 'lg:pr-[540px]' : ''}`}>
+        <div 
+          className="border rounded-lg overflow-x-auto max-w-7xl"
+          style={{ 
+            marginRight: isSidebarOpen ? `${sidebarWidth}px` : '0',
+            transition: 'margin-right 300ms ease-in-out'
+          }}
+        >
           {filteredArticles && filteredArticles.length > 0 ? (
-          <InternalLinkMatrix
-            articles={filteredArticles}
-            onHeaderClick={handleHeaderClick}
-            onLinkCountClick={handleLinkCountClick}
-            onLinkCellClick={handleLinkCellClick}
-          />
+            <InternalLinkMatrix
+              articles={filteredArticles}
+              onHeaderClick={handleHeaderClick}
+              onLinkCountClick={handleLinkCountClick}
+              onLinkCellClick={handleLinkCellClick}
+            />
           ) : (
             !loaderError && ( // loaderErrorがない場合のみ表示
               <div className="p-8 text-center">
@@ -290,7 +302,7 @@ export default function InternalLinkMatrixRoute() {
         </div>
       </div>
 
-      {/* 詳細表示サイドバー */}
+      {/* 詳細表示サイドバー - 固定位置で配置されるため、マトリクス表示エリアの外に配置 */}
       <ArticleDetailSidebar
         article={selectedArticle} // articleDetail モード用
         selectedLink={selectedLink} // linkDetail モード用
@@ -300,6 +312,7 @@ export default function InternalLinkMatrixRoute() {
         isOpen={isSidebarOpen}
         onClose={handleSidebarClose}
         articles={articles} // 全記事データを渡す（フィルタリングされていない元データ）
+        onWidthChange={handleSidebarWidthChange} // サイドバーの幅が変更されたときのコールバック
       />
     </div>
   );
