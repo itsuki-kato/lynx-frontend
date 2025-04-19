@@ -1,7 +1,7 @@
 import type { ArticleItem } from '~/types/article';
 import { Button } from '~/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { X } from "lucide-react";
+import { X, FileText, Link as LinkIcon, BarChart2, ExternalLink, ArrowDownToLine } from "lucide-react";
 import { ArticleBasicInfo } from './ArticleBasicInfo';
 import { ArticleLinksList } from './ArticleLinksList';
 import { ArticleSeoAnalysis } from './ArticleSeoAnalysis';
@@ -79,13 +79,37 @@ export default function ArticleDetailSidebar({
         {sidebarMode === 'articleDetail' && displayArticle && (
           <Tabs defaultValue={linkListType ? 'links' : 'basic'} className="flex flex-col h-full">
             {/* タブリスト */}
-            <div className="px-6 pt-4 sticky top-0 bg-background z-10 border-b">
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="basic">基本情報</TabsTrigger>
-                <TabsTrigger value="links">
-                  {linkListType === 'incoming' ? '被リンク一覧' : linkListType === 'outgoing' ? '発リンク一覧' : '内部リンク'}
+            <div className="px-6 pt-4 sticky top-0 bg-background z-10">
+              <TabsList className="grid grid-cols-3 w-full p-1 rounded-lg bg-muted/80">
+                <TabsTrigger 
+                  value="basic" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>基本情報</span>
                 </TabsTrigger>
-                <TabsTrigger value="seo">SEO分析</TabsTrigger>
+                <TabsTrigger 
+                  value="links"
+                  className="flex items-center space-x-2 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  {linkListType === 'incoming' ? (
+                    <ArrowDownToLine className="h-4 w-4" />
+                  ) : linkListType === 'outgoing' ? (
+                    <ExternalLink className="h-4 w-4" />
+                  ) : (
+                    <LinkIcon className="h-4 w-4" />
+                  )}
+                  <span className="truncate">
+                    {linkListType === 'incoming' ? '被リンク一覧' : linkListType === 'outgoing' ? '発リンク一覧' : '内部リンク'}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="seo"
+                  className="flex items-center space-x-2 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  <span>SEO分析</span>
+                </TabsTrigger>
               </TabsList>
             </div>
 
