@@ -34,7 +34,7 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const matches = useMatches();
-  const isLoginPage = matches.some((match) => match.id === "routes/login");
+  const isLoginPage = matches.some((match) => match.id === "routes/login" || match.id === "routes/landing");
   const { theme, toggleTheme } = useTheme(); // useThemeフックを使用
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // モバイルサイドバーの開閉状態
 
