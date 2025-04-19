@@ -58,40 +58,80 @@ const groupOutgoingLinks = (internalLinks: InternalLinkItem[] | undefined, allAr
 
 // 被リンクをリンク元記事IDでグルーピングする関数
 const groupIncomingLinks = (linkedFrom: InternalLinkItem[] | undefined, allArticles: ArticleItem[], baseArticle: ArticleItem) => { // LinkedFrom -> InternalLinkItem
-  if (!linkedFrom) return {};
   // 基準となる記事のURLを正規化
   const normalizedBaseUrl = normalizeUrl(baseArticle.articleUrl);
   // リンク元記事ID（文字列化）をキーとしたRecord。値は記事情報、アンカーテキストのSet、follow状態
   const grouped: Record<string, { article: ArticleItem | undefined; anchorTexts: Set<string>; isFollow: boolean }> = {};
 
-  linkedFrom.forEach(link => {
-    // criteriaArticleId が undefined の場合はスキップ
-    if (link.criteriaArticleId === undefined) return;
+  // linkedFromデータがある場合はそれを使用
+  if (linkedFrom && linkedFrom.length > 0) {
+    linkedFrom.forEach(link => {
+      // criteriaArticleId が undefined の場合はスキップ
+      if (link.criteriaArticleId === undefined) return;
 
-    const sourceArticleId = link.criteriaArticleId;
-    // 全記事データからリンク元記事ID (link.criteriaArticleId) に一致する記事 (a.id) を検索
-    // a.id は string | number なので、比較のために sourceArticleId を文字列に変換する
-    const sourceArticle = allArticles.find(a => String(a.id) === String(sourceArticleId));
-    
-    // 基準となる記事と同じURLの場合はスキップ
-    if (sourceArticle && normalizeUrl(sourceArticle.articleUrl) === normalizedBaseUrl) return;
-    
-    const sourceArticleIdStr = String(sourceArticleId); // グルーピングキーとして文字列を使用
+      const sourceArticleId = link.criteriaArticleId;
+      // 全記事データからリンク元記事ID (link.criteriaArticleId) に一致する記事 (a.id) を検索
+      // a.id は string | number なので、比較のために sourceArticleId を文字列に変換する
+      const sourceArticle = allArticles.find(a => String(a.id) === String(sourceArticleId));
+      
+      // 基準となる記事と同じURLの場合はスキップ
+      if (sourceArticle && normalizeUrl(sourceArticle.articleUrl) === normalizedBaseUrl) return;
+      
+      const sourceArticleIdStr = String(sourceArticleId); // グルーピングキーとして文字列を使用
 
-    if (!grouped[sourceArticleIdStr]) {
-      grouped[sourceArticleIdStr] = {
-        article: sourceArticle, // 見つかった記事情報（なければundefined）
-        anchorTexts: new Set(), // アンカーテキストを格納するSetを初期化
-        isFollow: link.isFollow ?? true // 最初のリンクのfollow状態を代表とする（undefinedの場合はtrueとする）
-      };
-    }
-     // アンカーテキストをSetに追加
-    grouped[sourceArticleIdStr].anchorTexts.add(link.anchorText || 'リンクテキストなし');
-    // isFollowの扱い：同じ記事からのリンクが複数ある場合、一つでもnofollowがあればnofollowとする
-     if (!link.isFollow) {
-        grouped[sourceArticleIdStr].isFollow = false;
-    }
-  });
+      if (!grouped[sourceArticleIdStr]) {
+        grouped[sourceArticleIdStr] = {
+          article: sourceArticle, // 見つかった記事情報（なければundefined）
+          anchorTexts: new Set(), // アンカーテキストを格納するSetを初期化
+          isFollow: link.isFollow ?? true // 最初のリンクのfollow状態を代表とする（undefinedの場合はtrueとする）
+        };
+      }
+      // アンカーテキストをSetに追加
+      grouped[sourceArticleIdStr].anchorTexts.add(link.anchorText || 'リンクテキストなし');
+      // isFollowの扱い：同じ記事からのリンクが複数ある場合、一つでもnofollowがあればnofollowとする
+      if (!link.isFollow) {
+          grouped[sourceArticleIdStr].isFollow = false;
+      }
+    });
+  } 
+  // linkedFromデータがない場合は、全記事データから現在の記事へのリンクを持つ記事を検索
+  else {
+    // 全記事をループして、現在の記事へのリンクを持つ記事を検索
+    allArticles.forEach(sourceArticle => {
+      // 基準となる記事と同じURLの場合はスキップ
+      if (normalizeUrl(sourceArticle.articleUrl) === normalizedBaseUrl) return;
+      
+      // 記事の内部リンクをチェック
+      if (sourceArticle.internalLinks && sourceArticle.internalLinks.length > 0) {
+        // 現在の記事へのリンクを持つ内部リンクを検索
+        const linksToCurrentArticle = sourceArticle.internalLinks.filter(link => 
+          normalizeUrl(link.linkUrl) === normalizedBaseUrl
+        );
+        
+        // 現在の記事へのリンクがある場合
+        if (linksToCurrentArticle.length > 0) {
+          const sourceArticleIdStr = String(sourceArticle.id); // グルーピングキーとして文字列を使用
+          
+          if (!grouped[sourceArticleIdStr]) {
+            grouped[sourceArticleIdStr] = {
+              article: sourceArticle,
+              anchorTexts: new Set(),
+              isFollow: true // デフォルトはtrue
+            };
+          }
+          
+          // 見つかった内部リンクのアンカーテキストとfollow状態を追加
+          linksToCurrentArticle.forEach(link => {
+            grouped[sourceArticleIdStr].anchorTexts.add(link.anchorText || 'リンクテキストなし');
+            if (!link.isFollow) {
+              grouped[sourceArticleIdStr].isFollow = false;
+            }
+          });
+        }
+      }
+    });
+  }
+  
   return grouped;
 };
 

@@ -1,5 +1,7 @@
 import type { ArticleItem } from '~/types/article';
 import { Badge } from '~/components/ui/badge';
+import { HeadingList } from '~/components/scraping/HeadingList';
+import { Type, Link, Heading1, Heading2, Heading3 } from "lucide-react";
 
 interface ArticleBasicInfoProps {
   article: ArticleItem;
@@ -12,11 +14,17 @@ export function ArticleBasicInfo({ article }: ArticleBasicInfoProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="font-semibold mb-1">タイトル</h3>
+        <Badge variant="outline" className="mb-2 px-3 py-1 text-base font-semibold flex items-center">
+          <Type className="h-4 w-4 mr-2 text-primary" />
+          タイトル
+        </Badge>
         <p className="text-sm text-muted-foreground">{article.metaTitle}</p>
       </div>
       <div>
-        <h3 className="font-semibold mb-1">URL</h3>
+        <Badge variant="outline" className="mb-2 px-3 py-1 text-base font-semibold flex items-center">
+          <Link className="h-4 w-4 mr-2 text-primary" />
+          URL
+        </Badge>
         <a
           href={article.articleUrl}
           target="_blank"
@@ -27,48 +35,19 @@ export function ArticleBasicInfo({ article }: ArticleBasicInfoProps) {
         </a>
       </div>
       <div>
-        <h3 className="font-semibold mb-1">ディスクリプション</h3>
-        <p className="text-sm text-muted-foreground">{article.metaDescription || '未設定'}</p>
-      </div>
-      <div>
-        <h3 className="font-semibold mb-1">見出し (H1)</h3>
-        <ul className="list-disc list-inside text-sm text-muted-foreground">
-          {article.headings?.filter(h => h.tag === 'h1').map((h, index) => (
-            <li key={`h1-${index}`}>{h.text}</li>
-          )) || <li>未設定</li>}
-        </ul>
-      </div>
-      <div className="flex gap-4">
-        <div>
-          <h3 className="font-semibold mb-1">発リンク</h3>
-          <div className="flex items-center">
-            <p className="text-sm text-muted-foreground">{article.internalLinks?.length ?? 0} 件</p>
-            {article.internalLinks && article.internalLinks.length > 0 ? (
-              <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-700 border-emerald-200">
-                リンクあり
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="ml-2 bg-gray-50 text-gray-500 border-gray-200">
-                リンクなし
-              </Badge>
-            )}
+        <Badge variant="outline" className="mb-2 px-3 py-1 text-base font-semibold flex items-center">
+          <div className="flex items-center mr-1 text-primary">
+            <Heading1 className="h-4 w-4" />
+            <Heading2 className="h-3 w-3 -ml-1" />
+            <Heading3 className="h-2 w-2 -ml-1" />
           </div>
-        </div>
-        <div>
-          <h3 className="font-semibold mb-1">被リンク</h3>
-          <div className="flex items-center">
-            <p className="text-sm text-muted-foreground">{article.linkedFrom?.length ?? 0} 件</p>
-            {article.linkedFrom && article.linkedFrom.length > 0 ? (
-              <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-700 border-emerald-200">
-                リンクあり
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="ml-2 bg-gray-50 text-gray-500 border-gray-200">
-                リンクなし
-              </Badge>
-            )}
-          </div>
-        </div>
+          見出し構造
+        </Badge>
+        {article.headings && article.headings.length > 0 ? (
+          <HeadingList headings={article.headings} />
+        ) : (
+          <p className="text-sm text-muted-foreground">見出しがありません</p>
+        )}
       </div>
     </div>
   );
