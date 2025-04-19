@@ -127,6 +127,7 @@ export default function InternalLinkMatrixRoute() {
   const [selectedLink, setSelectedLink] = useState<{ source: ArticleItem, target: ArticleItem } | null>(null);
   const [sidebarMode, setSidebarMode] = useState<'articleDetail' | 'linkDetail'>('articleDetail');
   const [linkListType, setLinkListType] = useState<'incoming' | 'outgoing' | null>(null);
+  const [initialTab, setInitialTab] = useState<'basic' | 'links' | 'seo'>('basic');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast(); // エラー表示用
   const [searchTerm, setSearchTerm] = useState(""); // 検索語
@@ -175,11 +176,22 @@ export default function InternalLinkMatrixRoute() {
     });
   }, [articles, searchTerm, filterType]);
 
-  // ヘッダーまたはリンク数がクリックされたときの処理
-  const handleHeaderOrLinkCountClick = (article: ArticleItem, type: 'incoming' | 'outgoing' | null = null) => {
+  // ヘッダー（タイトルセル）がクリックされたときの処理
+  const handleHeaderClick = (article: ArticleItem, type: 'incoming' | 'outgoing') => {
     setSidebarMode('articleDetail');
     setSelectedArticle(article);
-    setLinkListType(type); // incoming, outgoing, or null (for header click)
+    setLinkListType(type); // incoming または outgoing
+    setInitialTab('basic'); // 基本情報タブを初期表示
+    setSelectedLink(null); // リンク詳細はクリア
+    setIsSidebarOpen(true);
+  };
+
+  // リンク数セルがクリックされたときの処理
+  const handleLinkCountClick = (article: ArticleItem, type: 'incoming' | 'outgoing') => {
+    setSidebarMode('articleDetail');
+    setSelectedArticle(article);
+    setLinkListType(type); // incoming または outgoing
+    setInitialTab('links'); // リンクタブを初期表示
     setSelectedLink(null); // リンク詳細はクリア
     setIsSidebarOpen(true);
   };
@@ -259,12 +271,12 @@ export default function InternalLinkMatrixRoute() {
       <div className="flex-grow py-4 w-full overflow-hidden">
         <div className={`border rounded-lg overflow-x-auto max-w-7xl ${isSidebarOpen ? 'lg:pr-[540px]' : ''}`}>
           {filteredArticles && filteredArticles.length > 0 ? (
-            <InternalLinkMatrix
-              articles={filteredArticles}
-              onHeaderClick={(article) => handleHeaderOrLinkCountClick(article)}
-              onLinkCountClick={handleHeaderOrLinkCountClick}
-              onLinkCellClick={handleLinkCellClick}
-            />
+          <InternalLinkMatrix
+            articles={filteredArticles}
+            onHeaderClick={handleHeaderClick}
+            onLinkCountClick={handleLinkCountClick}
+            onLinkCellClick={handleLinkCellClick}
+          />
           ) : (
             !loaderError && ( // loaderErrorがない場合のみ表示
               <div className="p-8 text-center">
@@ -284,6 +296,7 @@ export default function InternalLinkMatrixRoute() {
         selectedLink={selectedLink} // linkDetail モード用
         sidebarMode={sidebarMode}
         linkListType={linkListType} // articleDetail モードでリンク一覧表示用
+        initialTab={initialTab} // 初期表示タブ
         isOpen={isSidebarOpen}
         onClose={handleSidebarClose}
         articles={articles} // 全記事データを渡す（フィルタリングされていない元データ）

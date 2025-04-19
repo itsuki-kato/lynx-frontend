@@ -32,10 +32,10 @@ const groupOutgoingLinks = (internalLinks: InternalLinkItem[] | undefined, allAr
 
   internalLinks.forEach(link => {
     const normalizedLinkUrl = normalizeUrl(link.linkUrl);
-    
+
     // 基準となる記事と同じURLの場合はスキップ
     if (normalizedLinkUrl === normalizedBaseUrl) return;
-    
+
     // 全記事データからリンク先URLに一致する記事を検索
     const targetArticle = allArticles.find(a => normalizeUrl(a.articleUrl) === normalizedLinkUrl);
 
@@ -50,7 +50,7 @@ const groupOutgoingLinks = (internalLinks: InternalLinkItem[] | undefined, allAr
     grouped[normalizedLinkUrl].anchorTexts.add(link.anchorText || 'リンクテキストなし');
     // isFollowの扱い：同じURLへのリンクが複数ある場合、一つでもnofollowがあればnofollowとする
     if (!link.isFollow) {
-        grouped[normalizedLinkUrl].isFollow = false;
+      grouped[normalizedLinkUrl].isFollow = false;
     }
   });
   return grouped;
@@ -73,10 +73,10 @@ const groupIncomingLinks = (linkedFrom: InternalLinkItem[] | undefined, allArtic
       // 全記事データからリンク元記事ID (link.criteriaArticleId) に一致する記事 (a.id) を検索
       // a.id は string | number なので、比較のために sourceArticleId を文字列に変換する
       const sourceArticle = allArticles.find(a => String(a.id) === String(sourceArticleId));
-      
+
       // 基準となる記事と同じURLの場合はスキップ
       if (sourceArticle && normalizeUrl(sourceArticle.articleUrl) === normalizedBaseUrl) return;
-      
+
       const sourceArticleIdStr = String(sourceArticleId); // グルーピングキーとして文字列を使用
 
       if (!grouped[sourceArticleIdStr]) {
@@ -90,28 +90,28 @@ const groupIncomingLinks = (linkedFrom: InternalLinkItem[] | undefined, allArtic
       grouped[sourceArticleIdStr].anchorTexts.add(link.anchorText || 'リンクテキストなし');
       // isFollowの扱い：同じ記事からのリンクが複数ある場合、一つでもnofollowがあればnofollowとする
       if (!link.isFollow) {
-          grouped[sourceArticleIdStr].isFollow = false;
+        grouped[sourceArticleIdStr].isFollow = false;
       }
     });
-  } 
+  }
   // linkedFromデータがない場合は、全記事データから現在の記事へのリンクを持つ記事を検索
   else {
     // 全記事をループして、現在の記事へのリンクを持つ記事を検索
     allArticles.forEach(sourceArticle => {
       // 基準となる記事と同じURLの場合はスキップ
       if (normalizeUrl(sourceArticle.articleUrl) === normalizedBaseUrl) return;
-      
+
       // 記事の内部リンクをチェック
       if (sourceArticle.internalLinks && sourceArticle.internalLinks.length > 0) {
         // 現在の記事へのリンクを持つ内部リンクを検索
-        const linksToCurrentArticle = sourceArticle.internalLinks.filter(link => 
+        const linksToCurrentArticle = sourceArticle.internalLinks.filter(link =>
           normalizeUrl(link.linkUrl) === normalizedBaseUrl
         );
-        
+
         // 現在の記事へのリンクがある場合
         if (linksToCurrentArticle.length > 0) {
           const sourceArticleIdStr = String(sourceArticle.id); // グルーピングキーとして文字列を使用
-          
+
           if (!grouped[sourceArticleIdStr]) {
             grouped[sourceArticleIdStr] = {
               article: sourceArticle,
@@ -119,7 +119,7 @@ const groupIncomingLinks = (linkedFrom: InternalLinkItem[] | undefined, allArtic
               isFollow: true // デフォルトはtrue
             };
           }
-          
+
           // 見つかった内部リンクのアンカーテキストとfollow状態を追加
           linksToCurrentArticle.forEach(link => {
             grouped[sourceArticleIdStr].anchorTexts.add(link.anchorText || 'リンクテキストなし');
@@ -131,7 +131,7 @@ const groupIncomingLinks = (linkedFrom: InternalLinkItem[] | undefined, allArtic
       }
     });
   }
-  
+
   return grouped;
 };
 
@@ -159,7 +159,7 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
             <ExternalLink className="h-4 w-4 mr-2" />
             発リンク
           </Badge>
-          {Object.keys(groupedOutgoingLinks).length > 0 ? (
+          {Object.keys(groupedOutgoingLinks).length > 0 && (
             <div className="space-y-4">
               {/* グルーピングされた発リンク情報をループ表示 */}
               {Object.entries(groupedOutgoingLinks).map(([url, data]) => (
@@ -170,25 +170,25 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
                       {data.article?.metaTitle || 'タイトル不明'}
                     </CardTitle>
                     {/* リンク先記事のURL */}
-                     <a
-                        href={data.article?.articleUrl || url} // 記事情報があればそのURL、なければグルーピングキーのURL
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline break-all flex items-center pt-1"
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1 flex-shrink-0" />
-                        {data.article?.articleUrl || url}
-                      </a>
+                    <a
+                      href={data.article?.articleUrl || url} // 記事情報があればそのURL、なければグルーピングキーのURL
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline break-all flex items-center pt-1"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1 flex-shrink-0" />
+                      {data.article?.articleUrl || url}
+                    </a>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                     {/* アンカーテキストセクションヘッダーとFollow/Nofollowバッジ */}
-                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-muted-foreground">アンカーテキスト:</p>
-                        <Badge variant={data.isFollow ? "default" : "outline"} className="ml-auto">
-                            {data.isFollow ? "follow" : "nofollow"}
-                        </Badge>
-                     </div>
-                     {/* アンカーテキストのリスト */}
+                    {/* アンカーテキストセクションヘッダーとFollow/Nofollowバッジ */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-muted-foreground">アンカーテキスト:</p>
+                      <Badge variant={data.isFollow ? "default" : "outline"} className="ml-auto">
+                        {data.isFollow ? "follow" : "nofollow"}
+                      </Badge>
+                    </div>
+                    {/* アンカーテキストのリスト */}
                     <div className="flex flex-wrap gap-1">
                       {Array.from(data.anchorTexts).map((text, i) => (
                         <Badge key={i} variant="secondary" className="text-xs font-normal">
@@ -201,8 +201,6 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
                 </Card>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">発リンクはありません</p>
           )}
         </div>
       )}
@@ -214,41 +212,41 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
             <ArrowRight className="h-4 w-4 mr-2" />
             被リンク
           </Badge>
-          {Object.keys(groupedIncomingLinks).length > 0 ? (
+          {Object.keys(groupedIncomingLinks).length > 0 && (
             <div className="space-y-4">
               {/* グルーピングされた被リンク情報をループ表示 */}
               {Object.entries(groupedIncomingLinks).map(([sourceId, data]) => (
-                 <Card key={`incoming-${sourceId}`}>
+                <Card key={`incoming-${sourceId}`}>
                   <CardHeader className="pb-2">
-                     {/* リンク元記事のタイトル */}
+                    {/* リンク元記事のタイトル */}
                     <CardTitle className="text-base font-medium">
                       {data.article?.metaTitle || `記事ID: ${sourceId} (タイトル不明)`}
                     </CardTitle>
                     {/* リンク元記事のURL */}
-                     <a
-                        href={data.article?.articleUrl || '#'} // 記事情報があればそのURL、なければ '#'
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        // URLが不明な場合はクリックできないようにスタイル調整
-                        className={`text-xs text-blue-600 hover:underline break-all flex items-center pt-1 ${!data.article?.articleUrl ? 'pointer-events-none text-muted-foreground' : ''}`}
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1 flex-shrink-0" />
-                        {data.article?.articleUrl || 'URL不明'}
-                      </a>
+                    <a
+                      href={data.article?.articleUrl || '#'} // 記事情報があればそのURL、なければ '#'
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      // URLが不明な場合はクリックできないようにスタイル調整
+                      className={`text-xs text-blue-600 hover:underline break-all items-center pt-1 ${!data.article?.articleUrl ? 'pointer-events-none text-muted-foreground' : ''}`}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1 flex-shrink-0" />
+                      {data.article?.articleUrl || 'URL不明'}
+                    </a>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                     {/* アンカーテキストセクションヘッダーとFollow/Nofollowバッジ */}
-                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-muted-foreground">アンカーテキスト:</p>
-                        <Badge variant={data.isFollow ? "default" : "outline"} className="ml-auto">
-                            {data.isFollow ? "follow" : "nofollow"}
-                        </Badge>
-                     </div>
-                     {/* アンカーテキストのリスト */}
+                    {/* アンカーテキストセクションヘッダーとFollow/Nofollowバッジ */}
+                    <div className="items-center justify-between">
+                      <p className="text-sm font-medium text-muted-foreground">アンカーテキスト:</p>
+                      <Badge variant={data.isFollow ? "default" : "outline"} className="ml-auto">
+                        {data.isFollow ? "follow" : "nofollow"}
+                      </Badge>
+                    </div>
+                    {/* アンカーテキストのリスト */}
                     <div className="flex flex-wrap gap-1">
                       {Array.from(data.anchorTexts).map((text, i) => (
                         <Badge key={i} variant="secondary" className="text-xs font-normal">
-                           <LinkIcon className="h-3 w-3 mr-1" />
+                          <LinkIcon className="h-3 w-3 mr-1" />
                           {text}
                         </Badge>
                       ))}
@@ -257,8 +255,6 @@ export function ArticleLinksList({ article, articles, type }: ArticleLinksListPr
                 </Card>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">被リンクはありません</p>
           )}
         </div>
       )}

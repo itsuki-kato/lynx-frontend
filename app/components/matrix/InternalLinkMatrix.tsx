@@ -13,7 +13,7 @@ import { AlertTriangle, Check, Hash } from 'lucide-react';
 
 interface InternalLinkMatrixProps {
   articles: ArticleItem[];
-  onHeaderClick: (article: ArticleItem) => void; // ヘッダークリック用
+  onHeaderClick: (article: ArticleItem, type: 'incoming' | 'outgoing') => void; // ヘッダークリック用（typeパラメータを追加）
   onLinkCountClick: (article: ArticleItem, type: 'incoming' | 'outgoing') => void; // リンク数クリック用
   onLinkCellClick: (sourceArticle: ArticleItem, targetArticle: ArticleItem) => void; // セルクリック用
 }
@@ -159,7 +159,7 @@ export default function InternalLinkMatrix({
                 key={`col-${colArticle.id}`}
                 className="border-b border-l min-w-[150px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${colArticle.metaTitle}\n記事URL: ${colArticle.articleUrl}\n被リンク: ${colArticle.linkedFrom?.length || 0}\n発リンク: ${colArticle.internalLinks?.length || 0}`}
-                onClick={() => onHeaderClick(colArticle)} // 発リンク記事ヘッダークリック
+                onClick={() => onHeaderClick(colArticle, 'outgoing')} // 発リンク記事ヘッダークリック
               >
                 <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                   {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
@@ -209,7 +209,7 @@ export default function InternalLinkMatrix({
                 scope="row"
                 className="sticky left-0 z-10 bg-background border-r font-medium w-40 min-w-[160px] align-middle cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${rowArticle.metaTitle}\n記事URL: ${rowArticle.articleUrl}\n被リンク: ${rowArticle.linkedFrom?.length || 0}\n発リンク: ${rowArticle.internalLinks?.length || 0}`}
-                onClick={() => onHeaderClick(rowArticle)} // 被リンク記事ヘッダークリック
+                onClick={() => onHeaderClick(rowArticle, 'incoming')} // 被リンク記事ヘッダークリック
               >
                 <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                   {rowArticle.metaTitle || `記事ID: ${rowArticle.id}`}

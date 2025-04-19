@@ -18,6 +18,7 @@ interface ArticleDetailSidebarProps {
   selectedLink: LinkDetail | null; // linkDetail モード用
   sidebarMode: 'articleDetail' | 'linkDetail';
   linkListType: 'incoming' | 'outgoing' | null; // articleDetail モードでリンク一覧表示用
+  initialTab?: 'basic' | 'links' | 'seo'; // 初期表示タブ
   isOpen: boolean;
   onClose: () => void;
   articles: ArticleItem[]; // 全記事データを追加（リンク先/元の記事情報を取得するため）
@@ -32,6 +33,7 @@ export default function ArticleDetailSidebar({
   selectedLink,
   sidebarMode,
   linkListType,
+  initialTab = 'basic', // デフォルト値を設定
   isOpen,
   onClose,
   articles
@@ -77,7 +79,11 @@ export default function ArticleDetailSidebar({
       <div className="flex-grow overflow-y-auto">
         {/* --- articleDetail モード --- */}
         {sidebarMode === 'articleDetail' && displayArticle && (
-          <Tabs defaultValue={linkListType ? 'links' : 'basic'} className="flex flex-col h-full">
+          <Tabs 
+            key={`tabs-${initialTab}-${displayArticle.id}`} 
+            defaultValue={initialTab} 
+            className="flex flex-col h-full"
+          >
             {/* タブリスト */}
             <div className="px-6 pt-4 sticky top-0 bg-background z-10">
               <TabsList className="grid grid-cols-3 w-full p-1 rounded-lg bg-muted/80">
@@ -118,7 +124,7 @@ export default function ArticleDetailSidebar({
               <ArticleBasicInfo article={displayArticle} />
             </TabsContent>
 
-            {/* 内部リンクタブ (linkListTypeに応じて表示切替) */}
+            {/* 内部リンクタブ　 (linkListTypeに応じて表示切替) */}
             <TabsContent value="links" className="px-6 pb-6 mt-4">
               <ArticleLinksList 
                 article={displayArticle} 

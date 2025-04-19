@@ -66,11 +66,6 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
         </CardContent>
       </Card>
 
-      {/* 矢印表示 */}
-      <div className="flex justify-center items-center py-1">
-        <ArrowRight className="h-6 w-6 text-blue-500 transform rotate-90" />
-      </div>
-
       {/* リンク先記事情報 */}
       <Card>
         <CardHeader className="pb-2">
