@@ -13,14 +13,21 @@ import { AlertTriangle, Check, Hash } from 'lucide-react';
 
 interface InternalLinkMatrixProps {
   articles: ArticleItem[];
-  onCellClick: (targetArticle: ArticleItem) => void;
+  onHeaderClick: (article: ArticleItem) => void; // ヘッダークリック用
+  onLinkCountClick: (article: ArticleItem, type: 'incoming' | 'outgoing') => void; // リンク数クリック用
+  onLinkCellClick: (sourceArticle: ArticleItem, targetArticle: ArticleItem) => void; // セルクリック用
 }
 
 /**
  * 内部リンクのマトリクス表示コンポーネント
- * 行: リンク元記事 / 列: リンク先記事
+ * 行: リンク先記事 / 列: リンク元記事
  */
-export default function InternalLinkMatrix({ articles, onCellClick }: InternalLinkMatrixProps): React.ReactNode {
+export default function InternalLinkMatrix({
+  articles,
+  onHeaderClick,
+  onLinkCountClick,
+  onLinkCellClick
+}: InternalLinkMatrixProps): React.ReactNode {
   // 孤立記事（発リンクも被リンクもない）のIDセットを作成
   const isolatedArticleIds = useMemo(() => {
     return new Set(
@@ -33,41 +40,46 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
     );
   }, [articles]);
 
-  // マトリクス表示に基づいたリンク有無を事前に計算
+  // マトリクス表示に基づいたリンク有無を事前に計算（行と列を入れ替え）
   const linkMatrix = useMemo(() => {
     const matrix: Record<string, Record<string, boolean>> = {};
+    // 行が被リンク記事（リンク先）、列が発リンク記事（リンク元）
     articles.forEach(rowArticle => {
-      const rowId = rowArticle.id; // Store ID
-      if (rowId === undefined) return; // Check ID
-      matrix[rowId] = {}; // Initialize only if ID is valid
+      const rowId = rowArticle.id; // 行ID（被リンク記事）
+      if (rowId === undefined) return;
+      matrix[rowId] = {};
+      
       articles.forEach(colArticle => {
-        const colId = colArticle.id; // Store ID
-        if (colId === undefined) return; // Check ID
+        const colId = colArticle.id; // 列ID（発リンク記事）
+        if (colId === undefined) return;
 
         const isSelfLink = rowId === colId;
         if (isSelfLink) {
-          matrix[rowId][colId] = false; // Use stored IDs
+          matrix[rowId][colId] = false;
           return;
         }
-        const hasLink = rowArticle.internalLinks?.some(link => {
+        
+        // 列の記事（発リンク記事）から行の記事（被リンク記事）へのリンクがあるか確認
+        const hasLink = colArticle.internalLinks?.some(link => {
           try {
             const linkUrl = new URL(link.linkUrl);
-            const articleUrl = new URL(colArticle.articleUrl);
+            const articleUrl = new URL(rowArticle.articleUrl);
             const normalizedLinkUrl = `${linkUrl.origin}${linkUrl.pathname}`.replace(/\/$/, '');
             const normalizedArticleUrl = `${articleUrl.origin}${articleUrl.pathname}`.replace(/\/$/, '');
             return normalizedLinkUrl === normalizedArticleUrl;
           } catch (e) {
-            return link.linkUrl === colArticle.articleUrl;
+            return link.linkUrl === rowArticle.articleUrl;
           }
         }) || false;
-        matrix[rowId][colId] = hasLink; // Use stored IDs
+        
+        matrix[rowId][colId] = hasLink;
       });
     });
     return matrix;
   }, [articles]);
 
-  // 各記事のリンク元としてのチェック数（行のチェック数）を計算
-  const outgoingLinksCount = useMemo(() => {
+  // 各記事の被リンク数（行のチェック数）を計算
+  const incomingLinksCount = useMemo(() => {
     const counts: Record<string, number> = {};
     articles.forEach(rowArticle => {
       const rowId = rowArticle.id;
@@ -75,15 +87,14 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
       counts[rowId] = articles.reduce((sum, colArticle) => {
         const colId = colArticle.id;
         if (colId === undefined) return sum;
-        // Access linkMatrix using checked IDs
         return sum + (linkMatrix[rowId]?.[colId] ? 1 : 0);
       }, 0);
     });
     return counts;
   }, [articles, linkMatrix]);
 
-  // 各記事のリンク先としてのチェック数（列のチェック数）を計算
-  const incomingLinksCount = useMemo(() => {
+  // 各記事の発リンク数（列のチェック数）を計算
+  const outgoingLinksCount = useMemo(() => {
     const counts: Record<string, number> = {};
     articles.forEach(colArticle => {
       const colId = colArticle.id;
@@ -91,7 +102,6 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
       counts[colId] = articles.reduce((sum, rowArticle) => {
         const rowId = rowArticle.id;
         if (rowId === undefined) return sum;
-        // Access linkMatrix using checked IDs
         return sum + (linkMatrix[rowId]?.[colId] ? 1 : 0);
       }, 0);
     });
@@ -131,7 +141,7 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
             {/* 左上の空セル */}
             <TableHead className="sticky left-0 top-0 z-20 bg-background border-r border-b w-40 min-w-[160px]"> {/* 固定 */}
               <div className="flex items-center justify-between">
-                <span>発リンク ↓ / 被リンク →</span>
+                <span>発リンク → / 被リンク ↓</span>
               </div>
             </TableHead>
             {/* チェック数列ヘッダー */}
@@ -143,12 +153,13 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
                 <span>リンク数</span>
               </div>
             </TableHead>
-            {/* 列ヘッダー (リンク先記事) */}
+            {/* 列ヘッダー (発リンク記事) */}
             {articles.map((colArticle) => (
               <TableHead
                 key={`col-${colArticle.id}`}
-                className="border-b border-l min-w-[150px] text-center align-middle sticky top-0 z-10 bg-background"
+                className="border-b border-l min-w-[150px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${colArticle.metaTitle}\n記事URL: ${colArticle.articleUrl}\n被リンク: ${colArticle.linkedFrom?.length || 0}\n発リンク: ${colArticle.internalLinks?.length || 0}`}
+                onClick={() => onHeaderClick(colArticle)} // 発リンク記事ヘッダークリック
               >
                 <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                   {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
@@ -170,15 +181,16 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
             {/* 空のセル（チェック数列との交差部分） */}
             <TableCell className="border border-l text-center bg-gray-100 dark:bg-gray-800">
             </TableCell>
-            {/* 各列のチェック数 */}
+            {/* 各列の発リンク数 */}
             {articles.map((colArticle) => {
-              const count = colArticle.id !== undefined ? incomingLinksCount[colArticle.id] || 0 : 0;
+              const count = colArticle.id !== undefined ? outgoingLinksCount[colArticle.id] || 0 : 0;
               const isZero = count === 0;
 
               return (
                 <TableCell
                   key={`check-count-col-${colArticle.id}`}
-                  className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
+                  className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
+                  onClick={() => onLinkCountClick(colArticle, 'outgoing')} // 発リンク数クリック
                 >
                   {count}
                 </TableCell>
@@ -192,34 +204,36 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
             <TableRow
               key={`row-${rowArticle.id}`}
             >
-              {/* 行ヘッダー (リンク元記事) */}
+              {/* 行ヘッダー (被リンク記事) */}
               <TableHead
                 scope="row"
-                className="sticky left-0 z-10 bg-background border-r font-medium w-40 min-w-[160px] align-middle"
+                className="sticky left-0 z-10 bg-background border-r font-medium w-40 min-w-[160px] align-middle cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${rowArticle.metaTitle}\n記事URL: ${rowArticle.articleUrl}\n被リンク: ${rowArticle.linkedFrom?.length || 0}\n発リンク: ${rowArticle.internalLinks?.length || 0}`}
+                onClick={() => onHeaderClick(rowArticle)} // 被リンク記事ヘッダークリック
               >
                 <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                   {rowArticle.metaTitle || `記事ID: ${rowArticle.id}`}
                 </div>
               </TableHead>
-              {/* リンク元としてのチェック数 */}
+              {/* 被リンク数 */}
               {(() => {
-                const count = rowArticle.id !== undefined ? outgoingLinksCount[rowArticle.id] || 0 : 0;
+                const count = rowArticle.id !== undefined ? incomingLinksCount[rowArticle.id] || 0 : 0;
                 const isZero = count === 0;
 
                 return (
                   <TableCell
-                    className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
+                    className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
+                    onClick={() => onLinkCountClick(rowArticle, 'incoming')} // 被リンク数クリック
                   >
                     {count}
                   </TableCell>
                 );
               })()}
 
-              {/* セル (リンク有無) */}
+              {/* セル (リンク有無) - 行が被リンク記事、列が発リンク記事 */}
               {articles.map((colArticle) => {
-                const rowId = rowArticle.id;
-                const colId = colArticle.id;
+                const rowId = rowArticle.id; // 被リンク記事ID
+                const colId = colArticle.id; // 発リンク記事ID
 
                 // 事前に計算したマトリクスからリンク有無を取得
                 const hasLink = rowId !== undefined && colId !== undefined ? linkMatrix[rowId]?.[colId] || false : false;
@@ -238,10 +252,10 @@ export default function InternalLinkMatrix({ articles, onCellClick }: InternalLi
                         isRowIsolated || isColIsolated // Use checked results
                       )
                     )}
-                    onClick={() => !isSelfLink && colArticle && onCellClick(colArticle)} // Add null check for colArticle potentially?
+                    onClick={() => !isSelfLink && hasLink && onLinkCellClick(colArticle, rowArticle)} // セルクリック (発リンク元, 被リンク先)
                     title={isSelfLink
                       ? "自分自身へのリンク"
-                      : `${rowArticle.metaTitle || `記事ID: ${rowArticle.id}`} → ${colArticle.metaTitle || `記事ID: ${colArticle.id}`} (${hasLink ? 'リンクあり' : 'リンクなし'})`
+                      : `${colArticle.metaTitle || `記事ID: ${colArticle.id}`} → ${rowArticle.metaTitle || `記事ID: ${rowArticle.id}`} (${hasLink ? 'リンクあり' : 'リンクなし'})`
                     }
                   >
                     {/* リンクの有無を表示（アイコン） */}

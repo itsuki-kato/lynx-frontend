@@ -7,7 +7,7 @@ import { requireAuth } from "~/utils/auth.server";
 import { analyzeSeoWithGemini } from "~/utils/gemini.server";
 import type { ArticleItem } from "~/types/article";
 import InternalLinkMatrix from '~/components/matrix/InternalLinkMatrix';
-import ArticleDetailSidebar from '~/components/matrix/ArticleDetailSidebar';
+import ArticleDetailSidebar from '~/components/matrix/sidebar/ArticleDetailSidebar';
 import MatrixSearchFilter from '~/components/matrix/MatrixSearchFilter';
 import MatrixStats from '~/components/matrix/MatrixStats';
 import AiAnalysisSection from '~/components/matrix/AiAnalysisSection';
@@ -124,6 +124,9 @@ export default function InternalLinkMatrixRoute() {
   const { articles, error: loaderError } = useLoaderData<typeof loader>();
   const { runAnalysis, analysisResult, isLoading: isAnalysisLoading, error: analysisError } = useOverallAnalysis();
   const [selectedArticle, setSelectedArticle] = useState<ArticleItem | null>(null);
+  const [selectedLink, setSelectedLink] = useState<{ source: ArticleItem, target: ArticleItem } | null>(null);
+  const [sidebarMode, setSidebarMode] = useState<'articleDetail' | 'linkDetail'>('articleDetail');
+  const [linkListType, setLinkListType] = useState<'incoming' | 'outgoing' | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast(); // エラー表示用
   const [searchTerm, setSearchTerm] = useState(""); // 検索語
@@ -172,16 +175,33 @@ export default function InternalLinkMatrixRoute() {
     });
   }, [articles, searchTerm, filterType]);
 
-  // クリックされたセルに対応する「発リンク先記事」の情報をセットする
-  const handleCellClick = (targetArticle: ArticleItem) => {
-    setSelectedArticle(targetArticle);
+  // ヘッダーまたはリンク数がクリックされたときの処理
+  const handleHeaderOrLinkCountClick = (article: ArticleItem, type: 'incoming' | 'outgoing' | null = null) => {
+    setSidebarMode('articleDetail');
+    setSelectedArticle(article);
+    setLinkListType(type); // incoming, outgoing, or null (for header click)
+    setSelectedLink(null); // リンク詳細はクリア
+    setIsSidebarOpen(true);
+  };
+
+  // マトリクスセル（チェックマーク）がクリックされたときの処理
+  const handleLinkCellClick = (sourceArticle: ArticleItem, targetArticle: ArticleItem) => {
+    setSidebarMode('linkDetail');
+    setSelectedLink({ source: sourceArticle, target: targetArticle });
+    setSelectedArticle(null); // 記事詳細はクリア
+    setLinkListType(null); // リスト種別もクリア
     setIsSidebarOpen(true);
   };
 
   // サイドバーを閉じる処理
   const handleSidebarClose = () => {
     setIsSidebarOpen(false);
+    // 状態をリセット
     setSelectedArticle(null);
+    setSelectedLink(null);
+    setLinkListType(null);
+    // sidebarMode は閉じるときにリセットしなくても良いかもしれないが、念のため
+    setSidebarMode('articleDetail');
   };
 
   return (
@@ -190,7 +210,7 @@ export default function InternalLinkMatrixRoute() {
       <div className="container py-6 max-w-7xl">
         <h1 className="text-2xl font-bold">内部リンク マトリクス</h1>
         <p className="text-muted-foreground">
-          記事間の内部リンクの有無をマトリクス形式で表示します。行がリンク元、列がリンク先です。
+          記事間の内部リンクの有無をマトリクス形式で表示します。行が被リンク記事、列が発リンク記事です。
         </p>
       </div>
 
@@ -241,7 +261,9 @@ export default function InternalLinkMatrixRoute() {
           {filteredArticles && filteredArticles.length > 0 ? (
             <InternalLinkMatrix
               articles={filteredArticles}
-              onCellClick={handleCellClick}
+              onHeaderClick={(article) => handleHeaderOrLinkCountClick(article)}
+              onLinkCountClick={handleHeaderOrLinkCountClick}
+              onLinkCellClick={handleLinkCellClick}
             />
           ) : (
             !loaderError && ( // loaderErrorがない場合のみ表示
@@ -258,7 +280,10 @@ export default function InternalLinkMatrixRoute() {
 
       {/* 詳細表示サイドバー */}
       <ArticleDetailSidebar
-        article={selectedArticle}
+        article={selectedArticle} // articleDetail モード用
+        selectedLink={selectedLink} // linkDetail モード用
+        sidebarMode={sidebarMode}
+        linkListType={linkListType} // articleDetail モードでリンク一覧表示用
         isOpen={isSidebarOpen}
         onClose={handleSidebarClose}
       />
