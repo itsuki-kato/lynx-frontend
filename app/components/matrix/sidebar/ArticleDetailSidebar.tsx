@@ -51,7 +51,7 @@ export default function ArticleDetailSidebar({
         }`}
     >
       {/* ヘッダー (スクロールしない部分) */}
-      <div className="p-6 border-b flex justify-between items-center flex-shrink-0">
+      <div className="p-6 flex justify-between items-center flex-shrink-0">
         <div>
           <h2 className="text-xl font-semibold">
             {sidebarMode === 'articleDetail' ? '記事詳細' : 'リンク詳細'}
@@ -144,7 +144,7 @@ export default function ArticleDetailSidebar({
       </div>
 
       {/* フッター (スクロールしない部分) */}
-      <div className="p-6 border-t flex-shrink-0">
+      <div className="p-6 flex-shrink-0">
         <Button variant="outline" onClick={onClose} className="w-full">
           閉じる
         </Button>

@@ -47,7 +47,7 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
           <CardTitle className="text-lg">
             <Badge variant="outline" className="mb-3 border-blue-500 text-blue-500 inline-flex items-center">
               <ExternalLink className="h-4 w-4 mr-2" />
-              発リンク元
+              発リンク記事
             </Badge>
             <div>{source.metaTitle}</div>
           </CardTitle>
@@ -66,13 +66,18 @@ export function LinkDetailView({ linkDetail }: LinkDetailViewProps) {
         </CardContent>
       </Card>
 
+      {/* 矢印表示 */}
+      <div className="flex justify-center items-center py-1">
+        <ArrowRight className="h-6 w-6 text-blue-500 transform rotate-90" />
+      </div>
+
       {/* リンク先記事情報 */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">
             <Badge variant="outline" className="mb-3 border-green-500 text-green-500 inline-flex items-center">
               <ArrowRight className="h-4 w-4 mr-2" />
-              被リンク先
+              被リンク記事
             </Badge>
             <div>{target.metaTitle}</div>
           </CardTitle>
