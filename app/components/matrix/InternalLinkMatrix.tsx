@@ -157,12 +157,16 @@ export default function InternalLinkMatrix({
             {articles.map((colArticle) => (
               <TableHead
                 key={`col-${colArticle.id}`}
-                className="border-b border-l min-w-[150px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="border-b border-l min-w-[60px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${colArticle.metaTitle}\n記事URL: ${colArticle.articleUrl}\n被リンク: ${colArticle.linkedFrom?.length || 0}\n発リンク: ${colArticle.internalLinks?.length || 0}`}
                 onClick={() => onHeaderClick(colArticle, 'outgoing')} // 発リンク記事ヘッダークリック
               >
-                <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
-                  {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
+                <div className="h-[220px] flex items-center justify-center">
+                  <div className="transform -rotate-90 w-[130px] overflow-hidden">
+                    <div className="max-h-[60px] overflow-hidden px-2 py-1">
+                      {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
+                    </div>
+                  </div>
                 </div>
               </TableHead>
             ))}

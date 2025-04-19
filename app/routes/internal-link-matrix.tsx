@@ -232,15 +232,6 @@ export default function InternalLinkMatrixRoute() {
         </p>
       </div>
 
-      {/* 統計情報表示 */}
-      {articles && articles.length > 0 && (
-        <div className="container w-full overflow-x-auto">
-          <div className="min-w-[640px] max-w-7xl">
-            <MatrixStats articles={articles} />
-          </div>
-        </div>
-      )}
-
       {/* エラーメッセージ表示 (loaderからのエラー) */}
       {loaderError && (
         <div className="container mb-4">
