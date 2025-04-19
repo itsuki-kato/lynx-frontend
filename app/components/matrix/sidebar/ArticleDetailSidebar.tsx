@@ -20,6 +20,7 @@ interface ArticleDetailSidebarProps {
   linkListType: 'incoming' | 'outgoing' | null; // articleDetail モードでリンク一覧表示用
   isOpen: boolean;
   onClose: () => void;
+  articles: ArticleItem[]; // 全記事データを追加（リンク先/元の記事情報を取得するため）
 }
 
 /**
@@ -32,7 +33,8 @@ export default function ArticleDetailSidebar({
   sidebarMode,
   linkListType,
   isOpen,
-  onClose
+  onClose,
+  articles
 }: ArticleDetailSidebarProps) {
   // 表示する記事データ（モードによって切り替え）
   const displayArticle = sidebarMode === 'articleDetail' ? article : null;
@@ -97,6 +99,7 @@ export default function ArticleDetailSidebar({
               <ArticleLinksList 
                 article={displayArticle} 
                 type={linkListType || 'both'} 
+                articles={articles} // 全記事データを渡す
               />
             </TabsContent>
 

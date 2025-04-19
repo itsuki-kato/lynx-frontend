@@ -286,6 +286,7 @@ export default function InternalLinkMatrixRoute() {
         linkListType={linkListType} // articleDetail モードでリンク一覧表示用
         isOpen={isSidebarOpen}
         onClose={handleSidebarClose}
+        articles={articles} // 全記事データを渡す（フィルタリングされていない元データ）
       />
     </div>
   );
