@@ -7,16 +7,14 @@ import {
   ScrollRestoration,
   useMatches,
 } from "react-router";
-import { useState } from "react"; // useEffectはuseThemeフック内で使うので削除
+import { useState } from "react";
 import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
 import { Toaster } from "~/components/ui/toaster";
-import { Header } from "~/components/layout/Header"; // Headerをインポート
-import { Sidebar } from "~/components/layout/Sidebar"; // Sidebarをインポート
-import { MobileSidebar } from "~/components/layout/MobileSidebar"; // MobileSidebarをインポート
-import { useTheme } from "~/hooks/use-theme"; // useThemeフックをインポート
-import { cn } from "~/lib/utils"; // cnユーティリティをインポート
-// import { Provider } from "jotai"; // JotaiのProviderインポートを削除
+import { Header } from "~/components/layout/Header";
+import { MobileSidebar } from "~/components/layout/MobileSidebar";
+import { useTheme } from "~/hooks/use-theme";
+import { cn } from "~/lib/utils";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -35,8 +33,8 @@ export const links: Route.LinksFunction = () => [
 export function Layout({ children }: { children: React.ReactNode }) {
   const matches = useMatches();
   const isLoginPage = matches.some((match) => match.id === "routes/login" || match.id === "routes/landing");
-  const { theme, toggleTheme } = useTheme(); // useThemeフックを使用
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // モバイルサイドバーの開閉状態
+  const { theme, toggleTheme } = useTheme();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // モバイルサイドバーを開く関数
   const handleOpenMobileSidebar = () => {
@@ -49,7 +47,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    // html要素のクラスはuseThemeフック内で管理される
     <html lang="ja" className={theme}>
       <head>
         <meta charSet="utf-8" />
@@ -60,12 +57,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      {/* bodyのクラスを調整 */}
       <body className={cn(
-        "min-h-screen bg-background font-sans antialiased flex flex-col",
-        // theme // themeクラスはhtml要素に適用されるため不要
+        "min-h-screen bg-background font-sans antialiased flex flex-col"
       )}>
-        {/* Headerコンポーネントを使用 */}
+        {/* ヘッダー */}
         <Header
           theme={theme}
           toggleTheme={toggleTheme}
@@ -74,9 +69,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* pt-16はヘッダーの高さ分 */}
         <div className="flex flex-grow pt-16 justify-center">
-          {/* デスクトップ用サイドバー (ログインページ以外で表示) */}
-          {!isLoginPage && <Sidebar />}
-
           {/* モバイル用サイドバー (ログインページ以外で表示) */}
           {!isLoginPage && (
             <MobileSidebar
@@ -86,11 +78,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Main Content */}
-          {/* サイドバーの有無に応じてマージンを調整 (md以上でサイドバー表示時) */}
-          {/* 最大幅(1536px)を設定し、中央揃えにする */}
           <main className={cn(
-            "flex-grow p-6 text-muted-foreground max-w-screen-2xl w-full", // max-w-screen-2xl, w-full を追加
-            !isLoginPage ? "md:ml-64 md:mr-0" : "mx-auto" // サイドバーがある場合は左マージンのみ、ない場合は中央揃え
+            "flex-grow p-6 text-muted-foreground max-w-screen-2xl w-full mx-auto"
           )}>
             {children}
           </main>
