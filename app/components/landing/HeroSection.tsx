@@ -12,7 +12,7 @@ export function HeroSection() {
       {/* 背景装飾 */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-r from-emerald-400/5 to-emerald-400/15 rounded-bl-[100%] z-0" />
       
-      <div className="container px-4 md:px-6 relative z-10 flex flex-col items-center">
+      <div className="container px-4 md:px-6 relative z-10 flex flex-col items-center mx-auto">
         <img 
           src="/lynx_logo_main.webp" 
           alt="LYNX" 

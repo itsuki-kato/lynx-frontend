@@ -9,7 +9,7 @@ import { ArrowRight, Award } from "lucide-react";
 export function CtaSection() {
   return (
     <section className="w-full py-24 lg:py-32 bg-muted/40">
-      <div className="container px-4 md:px-6">
+      <div className="container px-4 md:px-6 mx-auto">
         <div className="max-w-4xl mx-auto bg-background rounded-2xl p-12 shadow-xl text-center relative overflow-hidden">
           {/* 装飾要素 */}
           <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-400/10 rounded-bl-full opacity-70" />

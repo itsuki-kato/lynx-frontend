@@ -8,7 +8,7 @@ import { IconRenderer } from "./IconRenderer";
 export function BenefitsSection() {
   return (
     <section className="w-full py-24 lg:py-32 bg-emerald-600 text-white">
-      <div className="container px-4 md:px-6 text-center">
+      <div className="container px-4 md:px-6 text-center mx-auto">
         <SectionTitle 
           title="LYNXを導入するメリット"
           lightMode={true}

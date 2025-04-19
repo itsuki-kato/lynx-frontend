@@ -12,7 +12,7 @@ import { SectionTitle } from "./SectionTitle";
 export function PricingSection() {
   return (
     <section className="w-full py-24 lg:py-32 bg-background">
-      <div className="container px-4 md:px-6 text-center">
+      <div className="container px-4 md:px-6 text-center mx-auto">
         <SectionTitle 
           title="料金プラン"
           subtitle="あなたのビジネスに最適なプランをお選びいただけます"

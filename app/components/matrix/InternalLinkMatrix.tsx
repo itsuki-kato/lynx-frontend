@@ -134,8 +134,8 @@ export default function InternalLinkMatrix({
   };
 
   return (
-    <div className="overflow-x-auto relative w-full" style={{ scrollbarWidth: 'thin' }}>
-      <Table className="border w-max"> {/* w-max を使用して内容に合わせた幅を確保 */}
+    <div className="overflow-x-auto overflow-y-hidden relative w-full" style={{ scrollbarWidth: 'thin' }}>
+      <Table className="border table-fixed"> {/* table-fixed に変更してセル幅を固定 */}
         <TableHeader>
           <TableRow>
             {/* 左上の空セル */}
@@ -157,15 +157,13 @@ export default function InternalLinkMatrix({
             {articles.map((colArticle) => (
               <TableHead
                 key={`col-${colArticle.id}`}
-                className="border-b border-l min-w-[60px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="border-b border-l w-24 min-w-[96px] text-center align-middle sticky top-0 z-10 bg-background cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                 title={`${colArticle.metaTitle}\n記事URL: ${colArticle.articleUrl}\n被リンク: ${colArticle.linkedFrom?.length || 0}\n発リンク: ${colArticle.internalLinks?.length || 0}`}
                 onClick={() => onHeaderClick(colArticle, 'outgoing')} // 発リンク記事ヘッダークリック
               >
-                <div className="h-[220px] flex items-center justify-center">
-                  <div className="transform -rotate-90 w-[130px] overflow-hidden">
-                    <div className="max-h-[60px] overflow-hidden px-2 py-1">
-                      {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
-                    </div>
+                <div className="p-1 max-h-72 overflow-y-auto">
+                  <div className="text-xs leading-relaxed break-words">
+                    {colArticle.metaTitle || `記事ID: ${colArticle.id}`}
                   </div>
                 </div>
               </TableHead>
@@ -246,10 +244,10 @@ export default function InternalLinkMatrix({
                 const isColIsolated = colId !== undefined && isolatedArticleIds.has(colId);
 
                 return (
-                  <TableCell
-                    key={`cell-${rowId}-${colId}`}
-                    className={cn(
-                      "border border-l text-center p-0 h-12 w-12",
+                <TableCell
+                  key={`cell-${rowId}-${colId}`}
+                  className={cn(
+                    "border border-l text-center p-0 h-12 w-12 min-w-[48px]",
                       getCellStyle(
                         hasLink,
                         isSelfLink,

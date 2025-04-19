@@ -7,7 +7,7 @@ import { X, Facebook, Linkedin } from "lucide-react";
 export function FooterSection() {
   return (
     <footer className="w-full py-6 md:py-12 border-t">
-      <div className="container px-4 md:px-6">
+      <div className="container px-4 md:px-6 mx-auto">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">

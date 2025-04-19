@@ -11,7 +11,7 @@ import { SectionTitle } from "./SectionTitle";
 export function TestimonialsSection() {
   return (
     <section className="w-full py-24 lg:py-32 bg-muted/40">
-      <div className="container px-4 md:px-6">
+      <div className="container px-4 md:px-6 mx-auto">
         <SectionTitle 
           title={<>導入<span className="text-emerald-600">事例</span></>}
         />
