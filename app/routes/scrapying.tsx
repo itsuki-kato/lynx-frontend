@@ -8,17 +8,20 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { scrapyRequestSchema, type ScrapyRequest } from "~/share/zod/schemas";
-import { useAtom } from 'jotai'; // useAtom をインポート
-import { articlesAtom } from '~/atoms/article'; // articlesAtom をインポート
+import { scrapyRequestSchema } from "~/share/zod/schemas";
+import { useAtom } from 'jotai';
+import { articlesAtom } from '~/atoms/article';
+import {
+  crawlStatusAtom,
+  progressInfoAtom,
+  scrapingErrorMessageAtom,
+  scrapingJobIdAtom
+} from '~/atoms/scraping';
 import { useScraping } from "~/hooks/use-scraping";
-import type { UseScrapingReturn } from "~/types/scraping";
-import { NavigationBlocker } from "~/components/scraping/NavigationBlocker";
-// import { PageHeader } from "~/components/scraping/PageHeader"; // 未使用のためコメントアウト
 import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
 import { ScrapingForm } from "~/components/scraping/ScrapingForm";
 import { ScrapingResultsList } from "~/components/scraping/ScrapingResultsList";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
@@ -52,18 +55,17 @@ export default function Scrapying() {
   const { token } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
-  // カスタムフックを使用してスクレイピング機能を取得
+  // カスタムフックからアクション関数のみを取得
   const {
-    crawlStatus,
-    progressInfo,
-    errorMessage,
-    // scrapedArticles, // useScrapingから削除されたためコメントアウト
-    jobId,
     startScraping,
     cancelScraping
-  } = useScraping(token); // UseScrapingReturn 型指定を削除
+  } = useScraping(token);
 
-  // グローバルステートからスクレイピング結果を取得
+  // グローバルステートからスクレイピング状態を取得
+  const [crawlStatus] = useAtom(crawlStatusAtom);
+  const [progressInfo] = useAtom(progressInfoAtom);
+  const [errorMessage] = useAtom(scrapingErrorMessageAtom);
+  const [jobId] = useAtom(scrapingJobIdAtom);
   const [globalScrapingResults] = useAtom(articlesAtom);
 
   // ナビゲーションブロッカーを設定
@@ -122,24 +124,8 @@ export default function Scrapying() {
         </div>
       )}
 
-      {/* 完了状態かつ結果がある場合のみ詳細画面遷移ボタンを表示 */}
-      {crawlStatus === 'completed' && hasResults && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/scraping/result")} // scraping-results に遷移
-          className="flex items-center ml-4"
-        >
-          詳細分析を表示
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </Button>
-      )}
-
       {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
-      {/* ボタンを削除 */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 border-b">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4">
         <div className="container max-w-7xl mx-auto py-3">
           <div className="flex justify-between items-center">
             <ScrapingStatus
@@ -147,7 +133,6 @@ export default function Scrapying() {
               progressInfo={progressInfo}
               errorMessage={errorMessage}
             />
-            {/* ボタンは TabsList の隣に移動 */}
           </div>
         </div>
       </div>
@@ -175,9 +160,8 @@ export default function Scrapying() {
                 {/* 完了状態かつ結果がある場合のみ詳細画面遷移ボタンを表示 */}
                 {crawlStatus === 'completed' && hasResults && (
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => navigate("/scraping-results")} // scraping-results に遷移
+                    onClick={() => navigate("/scraping/result")} // scraping-results に遷移
                     className="flex items-center ml-4"
                   >
                     詳細分析を表示

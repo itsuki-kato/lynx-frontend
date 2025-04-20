@@ -1,5 +1,3 @@
-import type { ArticleItem } from "./article";
-
 // スクレイピング処理の状態
 export type CrawlStatus = 'idle' | 'running' | 'completed' | 'error';
 
@@ -17,13 +15,8 @@ export type ScrapingEvent =
   | { type: 'completion'; message: string; processed_pages: number; total_time: number }
   | { error: string };
 
-// スクレイピングフックの戻り値の型
+// スクレイピングフックの戻り値の型 (状態は含まない)
 export interface UseScrapingReturn {
-  crawlStatus: CrawlStatus;
-  progressInfo: ProgressInfo | null;
-  errorMessage: string | null;
-  // scrapedArticles: ArticleItem[]; // 削除: グローバルステートで管理するため
-  jobId: string | null;
   startScraping: (values: { startUrl: string; targetClass: string }) => Promise<void>;
   cancelScraping: (isNavigating?: boolean) => Promise<void>;
 }
