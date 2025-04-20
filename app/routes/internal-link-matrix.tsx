@@ -245,7 +245,7 @@ export default function InternalLinkMatrixRoute() {
 
       {/* 検索・フィルター・AI分析ボタン部分（固定表示） */}
       <div className="sticky top-0 z-10 bg-background mb-4">
-        <div className="container py-3 flex flex-wrap items-center gap-4 max-w-7xl">
+        <div className="py-3 flex flex-wrap items-center gap-4 max-w-7xl">
           <MatrixSearchFilter
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}

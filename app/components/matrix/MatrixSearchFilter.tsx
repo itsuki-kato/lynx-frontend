@@ -65,7 +65,7 @@ export default function MatrixSearchFilter({
   };
 
   return (
-    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 w-full shadow-sm overflow-x-hidden">
+    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 w-full overflow-x-hidden">
       <div className="container flex flex-col gap-4 py-4 max-w-full">
         {/* 検索ボックス */}
         <div className="relative w-full max-w-md">
