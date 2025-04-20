@@ -5,6 +5,7 @@ import { requireAuth } from "~/utils/auth.server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { scrapyRequestSchema, type ScrapyRequest } from "~/share/zod/schemas";
@@ -15,7 +16,7 @@ import { PageHeader } from "~/components/scraping/PageHeader";
 import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
 import { ScrapingForm } from "~/components/scraping/ScrapingForm";
 import { ScrapingResultsList } from "~/components/scraping/ScrapingResultsList";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
@@ -41,8 +42,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 };
 
 /**
- * スクレイピング実行ページ
- * 内部リンクマトリクス画面の雰囲気に合わせたデザイン
+ * サイト分析実行ページ
+ * 内部リンクマトリクス画面のスタイルに合わせて再構築
  */
 export default function Scrapying() {
   // useLoaderData から token を取得
@@ -81,59 +82,102 @@ export default function Scrapying() {
   // アクティブなタブの状態管理（デフォルトはフォーム）
   const defaultTab = hasResults && crawlStatus === 'completed' ? 'results' : 'form';
 
+  // 検索語の状態
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // 検索フィルター
+  const filteredArticles = useMemo(() => {
+    if (!searchTerm) return scrapedArticles;
+    
+    return scrapedArticles.filter(article => 
+      article.metaTitle?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      article.articleUrl?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      article.metaDescription?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [scrapedArticles, searchTerm]);
+
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* ページヘッダー（固定表示されない） - 左寄せ */}
-        <div className="flex flex-col md:flex-row justify-between items-start mb-10">
-          <div>
-            <h1 className="text-2xl font-bold">サイト分析ツール</h1>
-            <p className="mt-2 text-muted-foreground">
-              URLとクラス名を入力して、ウェブサイトの構造を分析します。
-            </p>
-          </div>
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      {/* ページヘッダー（固定表示されない） */}
+      <div className="container py-6 max-w-7xl">
+        <h1 className="text-2xl font-bold">サイト分析ツール</h1>
+        <p className="text-muted-foreground">
+          URLとクラス名を入力して、ウェブサイトの構造を分析します。
+        </p>
+      </div>
+
+      {/* エラーメッセージ表示 */}
+      {errorMessage && (
+        <div className="container mb-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>エラーが発生しました</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
         </div>
+      )}
 
-        {/* エラーメッセージ表示 */}
-        {errorMessage && (
-          <div className="mb-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>エラーが発生しました</AlertTitle>
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
-        <div className="sticky top-0 z-10 bg-background mb-4 w-full">
-          <div className="py-3">
-            <ScrapingStatus
-              crawlStatus={crawlStatus}
-              progressInfo={progressInfo}
-              errorMessage={errorMessage}
-            />
-          </div>
+      {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4">
+        <div className="container py-3 max-w-7xl">
+          <ScrapingStatus
+            crawlStatus={crawlStatus}
+            progressInfo={progressInfo}
+            errorMessage={errorMessage}
+          />
         </div>
+      </div>
 
-        {/* メインコンテンツエリア */}
-        <div className="py-4">
+      {/* メインコンテンツエリア */}
+      <div className="flex-grow py-4">
+        <div className="container max-w-7xl">
           {/* タブインターフェース */}
           <Tabs defaultValue={defaultTab} className="w-full">
-            <div className="flex justify-between items-center mb-6">
-              <TabsList>
-                <TabsTrigger value="form">
-                  フォーム
-                </TabsTrigger>
-                <TabsTrigger value="results" disabled={!hasResults}>
-                  結果
-                  {hasResults && (
-                    <Badge variant="outline" className="ml-2">
-                      {scrapedArticles.length}
-                    </Badge>
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+              <div className="flex items-center">
+                <TabsList>
+                  <TabsTrigger value="form">
+                    フォーム
+                  </TabsTrigger>
+                  <TabsTrigger value="results" disabled={!hasResults}>
+                    結果
+                    {hasResults && (
+                      <Badge variant="secondary" className="ml-2">
+                        {scrapedArticles.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* 検索フィールド（結果タブ用） */}
+              {defaultTab === 'results' && hasResults && (
+                <div className="relative w-full max-w-md">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg className="h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="タイトル、URL、説明で検索..."
+                    className="w-full pl-10 pr-10 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      onClick={() => setSearchTerm("")}
+                      aria-label="検索をクリア"
+                    >
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   )}
-                </TabsTrigger>
-              </TabsList>
+                </div>
+              )}
 
               {/* ジョブID表示 */}
               {jobId && (
@@ -145,85 +189,87 @@ export default function Scrapying() {
 
             {/* フォームタブコンテンツ */}
             <TabsContent value="form" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>スクレイピング設定</CardTitle>
-                  <CardDescription>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="p-6">
+                  <h3 className="text-lg font-medium mb-4">スクレイピング設定</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
                     分析対象のURLとコンテンツを含むHTML要素のクラス名を入力してください
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                  </p>
                   <ScrapingForm
                     form={form}
                     onSubmit={startScraping}
                     crawlStatus={crawlStatus}
                     onCancel={() => cancelScraping(false)}
                   />
-                </CardContent>
-                <CardFooter className="text-xs text-muted-foreground border-t pt-4">
-                  <p>※ スクレイピングはサーバーリソースを消費します。適切な間隔を空けてご利用ください。</p>
-                </CardFooter>
-              </Card>
+                  <div className="mt-6 pt-4 border-t text-xs text-muted-foreground">
+                    <p>※ スクレイピングはサーバーリソースを消費します。適切な間隔を空けてご利用ください。</p>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
 
             {/* 結果タブコンテンツ */}
             <TabsContent value="results" className="mt-0">
               {/* 追加情報セクション */}
               {crawlStatus === 'completed' && hasResults && (
-                <div className="mb-8">
+                <div className="mb-6">
                   <h3 className="text-lg font-medium mb-4">スクレイピング概要</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg border bg-background">
+                    <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">総記事数</p>
                       <p className="text-2xl font-bold">{scrapedArticles.length}</p>
                     </div>
-                    <div className="p-4 rounded-lg border bg-background">
+                    <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">内部リンク合計</p>
                       <p className="text-2xl font-bold">
-                        {scrapedArticles.reduce((sum, article) => sum + article.internalLinks.length, 0)}
+                        {scrapedArticles.reduce((sum, article) => sum + (article.internalLinks?.length || 0), 0)}
                       </p>
                     </div>
-                    <div className="p-4 rounded-lg border bg-background">
+                    <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">外部リンク合計</p>
                       <p className="text-2xl font-bold">
-                        {scrapedArticles.reduce((sum, article) => sum + article.outerLinks.length, 0)}
+                        {scrapedArticles.reduce((sum, article) => sum + (article.outerLinks?.length || 0), 0)}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
               
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>スクレイピング結果</CardTitle>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">スクレイピング結果</h3>
                     {hasResults && (
-                      <Badge variant="outline" className="ml-2">
-                        {scrapedArticles.length}件
-                      </Badge>
+                      <div className="flex items-center">
+                        <Badge variant="secondary">
+                          {filteredArticles.length}/{scrapedArticles.length}件
+                        </Badge>
+                      </div>
                     )}
                   </div>
-                  <CardDescription>
+                  <p className="text-sm text-muted-foreground mb-6">
                     取得した記事データの一覧です
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="overflow-x-hidden">
-                  <ScrapingResultsList articles={scrapedArticles} />
-                </CardContent>
-                {hasResults && (
-                  <CardFooter className="flex justify-end border-t pt-4">
-                    <button
-                      onClick={() => navigate("/scraping/result")}
-                      className="text-sm text-primary hover:text-primary/80 flex items-center"
-                    >
-                      詳細分析を表示
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </CardFooter>
-                )}
-              </Card>
+                  </p>
+                  <div className="overflow-x-hidden">
+                    <ScrapingResultsList articles={filteredArticles} />
+                  </div>
+                  {hasResults && (
+                    <div className="mt-6 pt-4 border-t flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/scraping/result")}
+                        className="flex items-center"
+                      >
+                        詳細分析を表示
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
