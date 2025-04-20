@@ -16,6 +16,8 @@ import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
 import { ScrapingForm } from "~/components/scraping/ScrapingForm";
 import { ScrapingResultsList } from "~/components/scraping/ScrapingResultsList";
 import { useEffect } from "react";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -40,7 +42,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
 /**
  * スクレイピング実行ページ
- * モダンなUI/UXを実現するためにレイアウトを改善
+ * 内部リンクマトリクス画面の雰囲気に合わせたデザイン
  */
 export default function Scrapying() {
   // useLoaderData から token を取得
@@ -80,39 +82,53 @@ export default function Scrapying() {
   const defaultTab = hasResults && crawlStatus === 'completed' ? 'results' : 'form';
 
   return (
-    // min-h-screenを削除し、flex flex-col flex-growを追加して親要素の高さいっぱいに広げ、内部要素を縦に並べる
-    <div className="bg-gradient-to-b from-background to-muted/20 flex flex-col flex-grow py-12 px-4 sm:px-6 lg:px-8 overflow-x-hidden">
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* ページヘッダー（固定表示されない） - 左寄せ */}
+        <div className="flex flex-col md:flex-row justify-between items-start mb-10">
+          <div>
+            <h1 className="text-2xl font-bold">サイト分析ツール</h1>
+            <p className="mt-2 text-muted-foreground">
+              URLとクラス名を入力して、ウェブサイトの構造を分析します。
+            </p>
+          </div>
+        </div>
 
-      <div className="max-w-6xl mx-auto overflow-hidden w-full"> {/* w-fullを追加してコンテナが幅いっぱいに広がるように */}
-        {/* ページヘッダー */}
-        <PageHeader
-          hasResults={hasResults}
-          crawlStatus={crawlStatus}
-          onViewResults={() => navigate("/scraping/result")}
-        />
+        {/* エラーメッセージ表示 */}
+        {errorMessage && (
+          <div className="mb-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>エラーが発生しました</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
-        <div className="sticky top-4 z-10 mb-8">
-          <ScrapingStatus
-            crawlStatus={crawlStatus}
-            progressInfo={progressInfo}
-            errorMessage={errorMessage}
-          />
+        <div className="sticky top-0 z-10 bg-background mb-4 w-full">
+          <div className="py-3">
+            <ScrapingStatus
+              crawlStatus={crawlStatus}
+              progressInfo={progressInfo}
+              errorMessage={errorMessage}
+            />
+          </div>
         </div>
 
         {/* メインコンテンツエリア */}
-        <div className="mt-8">
+        <div className="py-4">
           {/* タブインターフェース */}
           <Tabs defaultValue={defaultTab} className="w-full">
             <div className="flex justify-between items-center mb-6">
-              <TabsList className="grid grid-cols-2 w-64">
-                <TabsTrigger value="form" className="data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-900 dark:data-[state=active]:bg-emerald-900/20 dark:data-[state=active]:text-emerald-100">
+              <TabsList>
+                <TabsTrigger value="form">
                   フォーム
                 </TabsTrigger>
-                <TabsTrigger value="results" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-900 dark:data-[state=active]:bg-blue-900/20 dark:data-[state=active]:text-blue-100" disabled={!hasResults}>
+                <TabsTrigger value="results" disabled={!hasResults}>
                   結果
                   {hasResults && (
-                    <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-100">
+                    <Badge variant="outline" className="ml-2">
                       {scrapedArticles.length}
                     </Badge>
                   )}
@@ -129,9 +145,9 @@ export default function Scrapying() {
 
             {/* フォームタブコンテンツ */}
             <TabsContent value="form" className="mt-0">
-              <Card className="shadow-lg border-t-4 border-t-emerald-500 dark:border-t-emerald-400 transition-all duration-300">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl text-emerald-700 dark:text-emerald-300">スクレイピング設定</CardTitle>
+              <Card>
+                <CardHeader>
+                  <CardTitle>スクレイピング設定</CardTitle>
                   <CardDescription>
                     分析対象のURLとコンテンツを含むHTML要素のクラス名を入力してください
                   </CardDescription>
@@ -154,22 +170,22 @@ export default function Scrapying() {
             <TabsContent value="results" className="mt-0">
               {/* 追加情報セクション */}
               {crawlStatus === 'completed' && hasResults && (
-                <div className="mt-8 bg-white dark:bg-gray-800/50 rounded-lg p-6 shadow-md">
-                  <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">スクレイピング概要</h3>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">スクレイピング概要</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">総記事数</p>
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{scrapedArticles.length}</p>
+                    <div className="p-4 rounded-lg border bg-background">
+                      <p className="text-sm text-muted-foreground">総記事数</p>
+                      <p className="text-2xl font-bold">{scrapedArticles.length}</p>
                     </div>
-                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">内部リンク合計</p>
-                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">
+                    <div className="p-4 rounded-lg border bg-background">
+                      <p className="text-sm text-muted-foreground">内部リンク合計</p>
+                      <p className="text-2xl font-bold">
                         {scrapedArticles.reduce((sum, article) => sum + article.internalLinks.length, 0)}
                       </p>
                     </div>
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">外部リンク合計</p>
-                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-300">
+                    <div className="p-4 rounded-lg border bg-background">
+                      <p className="text-sm text-muted-foreground">外部リンク合計</p>
+                      <p className="text-2xl font-bold">
                         {scrapedArticles.reduce((sum, article) => sum + article.outerLinks.length, 0)}
                       </p>
                     </div>
@@ -177,10 +193,10 @@ export default function Scrapying() {
                 </div>
               )}
               
-              <Card className="shadow-lg border-t-4 border-t-blue-500 dark:border-t-blue-400 transition-all duration-300">
-                <CardHeader className="pb-2">
+              <Card>
+                <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl text-blue-700 dark:text-blue-300">スクレイピング結果</CardTitle>
+                    <CardTitle>スクレイピング結果</CardTitle>
                     {hasResults && (
                       <Badge variant="outline" className="ml-2">
                         {scrapedArticles.length}件
@@ -198,7 +214,7 @@ export default function Scrapying() {
                   <CardFooter className="flex justify-end border-t pt-4">
                     <button
                       onClick={() => navigate("/scraping/result")}
-                      className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                      className="text-sm text-primary hover:text-primary/80 flex items-center"
                     >
                       詳細分析を表示
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
