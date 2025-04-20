@@ -99,7 +99,7 @@ export default function Scrapying() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       {/* ページヘッダー（固定表示されない） */}
-      <div className="container py-6 max-w-7xl">
+      <div className="container py-6 max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold">サイト分析ツール</h1>
         <p className="text-muted-foreground">
           URLとクラス名を入力して、ウェブサイトの構造を分析します。
@@ -108,7 +108,7 @@ export default function Scrapying() {
 
       {/* エラーメッセージ表示 */}
       {errorMessage && (
-        <div className="container mb-4">
+        <div className="container max-w-7xl mx-auto mb-4">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>エラーが発生しました</AlertTitle>
@@ -119,7 +119,7 @@ export default function Scrapying() {
 
       {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4">
-        <div className="container py-3 max-w-7xl">
+        <div className="container max-w-7xl mx-auto py-3">
           <ScrapingStatus
             crawlStatus={crawlStatus}
             progressInfo={progressInfo}
@@ -129,8 +129,8 @@ export default function Scrapying() {
       </div>
 
       {/* メインコンテンツエリア */}
-      <div className="flex-grow py-4">
-        <div className="container max-w-7xl">
+      <div className="flex-grow py-4 w-full overflow-auto">
+        <div className="container max-w-7xl mx-auto">
           {/* タブインターフェース */}
           <Tabs defaultValue={defaultTab} className="w-full">
             <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
