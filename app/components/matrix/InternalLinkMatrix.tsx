@@ -265,11 +265,6 @@ export default function InternalLinkMatrix({
                     {hasLink && !isSelfLink && (
                       <Check className="h-4 w-4 mx-auto text-emerald-600 dark:text-emerald-400" />
                     )}
-
-                    {/* 孤立記事の場合は警告アイコンを表示 */}
-                    {!hasLink && !isSelfLink && isRowIsolated && isColIsolated && (
-                      <AlertTriangle className="h-4 w-4 mx-auto text-red-500 dark:text-red-400 opacity-50" />
-                    )}
                   </TableCell>
                 );
               })}
