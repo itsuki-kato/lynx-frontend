@@ -2,10 +2,11 @@ import type { Route } from "./+types/home";
 import { useLoaderData, useNavigate, useBlocker } from "react-router";
 import { getSession } from "~/utils/session.server";
 import { requireAuth } from "~/utils/auth.server";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"; // CardFooter は未使用なので削除
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input"; // Input をインポート
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { scrapyRequestSchema } from "~/share/zod/schemas";
@@ -22,7 +23,7 @@ import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
 import { ScrapingForm } from "~/components/scraping/ScrapingForm";
 import { ScrapingResultsList } from "~/components/scraping/ScrapingResultsList";
 import { useState, useMemo } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowRight, Search, X } from "lucide-react"; // アイコンをインポート
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 export function meta({ }: Route.MetaArgs) {
@@ -165,38 +166,33 @@ export default function Scrapying() {
                     className="flex items-center ml-4"
                   >
                     詳細分析を表示
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                    <ArrowRight className="h-4 w-4 ml-1" /> {/* lucide-react アイコンに変更 */}
                   </Button>
                 )}
               </div>
 
               {/* 検索フィールド（結果タブ用） */}
+              {/* 検索フィールド（結果タブ用） - shadcn/ui の Input を使用 */}
               {defaultTab === 'results' && hasResults && (
                 <div className="relative w-full max-w-md">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg className="h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <input
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
                     type="text"
                     placeholder="タイトル、URL、説明で検索..."
-                    className="w-full pl-10 pr-10 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none"
+                    className="w-full pl-10 pr-10" // padding調整
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                   {searchTerm && (
-                    <button
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2" // Button を使用し、位置調整
                       onClick={() => setSearchTerm("")}
                       aria-label="検索をクリア"
                     >
-                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      <X className="h-4 w-4" /> {/* lucide-react アイコンに変更 */}
+                    </Button>
                   )}
                 </div>
               )}
@@ -209,14 +205,16 @@ export default function Scrapying() {
               )}
             </div>
 
-            {/* フォームタブコンテンツ */}
+            {/* フォームタブコンテンツ - Card コンポーネントを使用 */}
             <TabsContent value="form" className="mt-0">
-              <div className="border rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <h3 className="text-lg font-medium mb-4">スクレイピング設定</h3>
-                  <p className="text-sm text-muted-foreground mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>スクレイピング設定</CardTitle>
+                  <CardDescription>
                     分析対象のURLとコンテンツを含むHTML要素のクラス名を入力してください
-                  </p>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <ScrapingForm
                     form={form}
                     onSubmit={startScraping}
@@ -226,54 +224,68 @@ export default function Scrapying() {
                   <div className="mt-6 pt-4 border-t text-xs text-muted-foreground">
                     <p>※ スクレイピングはサーバーリソースを消費します。適切な間隔を空けてご利用ください。</p>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            {/* 結果タブコンテンツ */}
-            <TabsContent value="results" className="mt-0">
-              {/* 追加情報セクション */}
+            {/* 結果タブコンテンツ - Card コンポーネントを使用 */}
+            <TabsContent value="results" className="mt-0 space-y-6"> {/* space-y を追加 */}
+              {/* 追加情報セクション - Card コンポーネントを使用 */}
               {crawlStatus === 'completed' && hasResults && (
-                <div className="mb-6">
+                <div> {/* 外側の div を追加 */}
                   <h3 className="text-lg font-medium mb-4">スクレイピング概要</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg border bg-card">
-                      <p className="text-sm text-muted-foreground">総記事数</p>
-                      <p className="text-2xl font-bold">{globalScrapingResults.length}</p> {/* グローバルステートを参照 */}
-                    </div>
-                    <div className="p-4 rounded-lg border bg-card">
-                      <p className="text-sm text-muted-foreground">内部リンク合計</p>
-                      <p className="text-2xl font-bold">
-                        {globalScrapingResults.reduce((sum, article) => sum + (article.internalLinks?.length || 0), 0)} {/* グローバルステートを参照 */}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border bg-card">
-                      <p className="text-sm text-muted-foreground">外部リンク合計</p>
-                      <p className="text-2xl font-bold">
-                        {globalScrapingResults.reduce((sum, article) => sum + (article.outerLinks?.length || 0), 0)} {/* グローバルステートを参照 */}
-                      </p>
-                    </div>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">総記事数</CardTitle>
+                        {/* アイコンなど追加可能 */}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{globalScrapingResults.length}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">内部リンク合計</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {globalScrapingResults.reduce((sum, article) => sum + (article.internalLinks?.length || 0), 0)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">外部リンク合計</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {globalScrapingResults.reduce((sum, article) => sum + (article.outerLinks?.length || 0), 0)}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               )}
 
-              <div className="border rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium">スクレイピング結果</h3>
+              {/* 結果リスト - Card コンポーネントを使用 */}
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>スクレイピング結果</CardTitle>
                     {hasResults && (
-                      <div className="flex items-center">
-                        <Badge variant="secondary">
-                          {filteredArticles.length}/{globalScrapingResults.length}件 {/* グローバルステートを参照 */}
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary">
+                        {filteredArticles.length}/{globalScrapingResults.length}件
+                      </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-6">
+                  <CardDescription>
                     取得した記事データの一覧です
-                  </p>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="overflow-x-hidden">
-                    <ScrapingResultsList articles={filteredArticles} /> {/* filteredArticles はグローバルステート由来 */}
+                    <ScrapingResultsList articles={filteredArticles} />
                   </div>
                   {hasResults && (
                     <div className="mt-6 pt-4 border-t flex justify-end">
@@ -284,14 +296,12 @@ export default function Scrapying() {
                         className="flex items-center"
                       >
                         詳細分析を表示
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
+                        <ArrowRight className="h-4 w-4 ml-1" /> {/* lucide-react アイコンに変更 */}
                       </Button>
                     </div>
                   )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

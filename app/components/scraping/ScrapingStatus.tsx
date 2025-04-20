@@ -1,7 +1,9 @@
 import React from 'react';
 import type { CrawlStatus, ProgressInfo } from '~/types/scraping';
 import { Badge } from '~/components/ui/badge';
-import { Clock, AlertTriangle, CheckCircle, Timer, FileText } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, Timer, FileText, Loader2 } from 'lucide-react'; // Loader2 をインポート
+import { Progress } from '~/components/ui/progress'; // Progress をインポート
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'; // Alert コンポーネントをインポート
 
 interface ScrapingStatusProps {
   crawlStatus: CrawlStatus;
@@ -56,12 +58,7 @@ export function ScrapingStatus({ crawlStatus, progressInfo, errorMessage }: Scra
         {renderStatusBadge()}
       </div>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5">
-          <svg className="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
+        <Loader2 className="animate-spin h-4 w-4 text-primary mt-0.5" /> {/* Loader2 アイコンに変更 */}
         <div className="flex-grow">
           <p className="text-sm font-medium">
             スクレイピング処理中です...
@@ -79,9 +76,8 @@ export function ScrapingStatus({ crawlStatus, progressInfo, errorMessage }: Scra
                   経過時間: {progressInfo.elapsedTime.toFixed(1)}秒
                 </span>
               </div>
-              <div className="w-full h-1 bg-primary/30 rounded-full overflow-hidden">
-                <div className="h-full bg-primary animate-pulse w-full"></div>
-              </div>
+              {/* Progress コンポーネントを使用 */}
+              <Progress value={100} className="h-1 w-full [&>*]:animate-pulse" /> 
             </div>
           )}
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
@@ -123,24 +119,19 @@ export function ScrapingStatus({ crawlStatus, progressInfo, errorMessage }: Scra
     </div>
   );
 
-  // エラーメッセージ
+  // エラーメッセージ - Alert コンポーネントを使用
   const renderErrorStatus = () => (
     errorMessage && (
-      <div className="border border-l-4 border-l-destructive rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium">スクレイピングステータス</h3>
+      <Alert variant="destructive">
+        <div className="flex items-center justify-between mb-2 w-full"> {/* w-full を追加 */}
+          <AlertTitle className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" /> {/* アイコンをタイトル内に移動 */}
+            スクレイピングステータス
+          </AlertTitle>
           {renderStatusBadge()}
         </div>
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
-          <div>
-            <p className="text-sm font-medium">
-              エラーが発生しました
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">{errorMessage}</p>
-          </div>
-        </div>
-      </div>
+        <AlertDescription>{errorMessage}</AlertDescription>
+      </Alert>
     )
   );
 

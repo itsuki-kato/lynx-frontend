@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '~/components/ui/badge';
-import { ExternalLink, Link2 } from 'lucide-react';
+import { ExternalLink, Link2, FileText } from 'lucide-react'; // FileText をインポート
 import type { ArticleItem } from '~/types/article';
 
 interface ScrapingResultsListProps {
@@ -16,9 +16,7 @@ export function ScrapingResultsList({ articles }: ScrapingResultsListProps) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center p-6 border border-dashed rounded-lg">
         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+          <FileText className="h-5 w-5 text-muted-foreground" /> {/* lucide-react アイコンに変更 */}
         </div>
         <h3 className="text-base font-medium mb-2">データがありません</h3>
         <p className="text-sm text-muted-foreground max-w-md">

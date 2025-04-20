@@ -1,9 +1,9 @@
-import type { EditableScrapingResultItem } from "~/atoms/scrapingResults";
+import type { ArticleItem } from "~/atoms/articles"; // 正しい型とパスに修正
 import { ScrapingResultCard } from "./ScrapingResultCard";
 import { ScrapingEmptyState } from "./ScrapingEmptyState";
 
 interface ScrapingResultListProps {
-  results: EditableScrapingResultItem[];
+  results: ArticleItem[]; // 型名を修正
   onSelectItem: (id: string) => void;
   isLoading: boolean;
 }

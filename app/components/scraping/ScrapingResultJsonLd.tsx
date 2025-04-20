@@ -1,6 +1,10 @@
 import type { ArticleItem } from "~/types/article";
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Building, Globe, FileText, BookOpen, List, User, ShoppingBag, HelpCircle, FileQuestion, Calendar, ExternalLink, Code } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"; // Card コンポーネントをインポート
+import { Badge } from "~/components/ui/badge"; // Badge コンポーネントをインポート
+import { Button } from "~/components/ui/button"; // Button コンポーネントをインポート
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"; // Tabs コンポーネントをインポート
 
 interface Props {
   item: ArticleItem;
@@ -17,96 +21,82 @@ export function ScrapingResultJsonLd({ item }: Props) {
   }
 
   return (
-    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 border-b dark:border-gray-700 flex items-center">
-        <Code className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">構造化データ（JSON-LD）</h3>
-      </div>
-      <div className="p-4 bg-white dark:bg-gray-800">
+    <Card> {/* div を Card に変更 */}
+      <CardHeader className="flex flex-row items-center space-x-2 py-3"> {/* CardHeader を使用し、スタイル調整 */}
+        <Code className="h-5 w-5 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
+        <CardTitle className="text-lg font-medium">構造化データ（JSON-LD）</CardTitle> {/* CardTitle を使用 */}
+      </CardHeader>
+      <CardContent className="p-4 pt-0"> {/* CardContent を使用し、padding調整 */}
         <div className="space-y-6">
           {item.jsonLd.map((jsonLdItem, index) => (
             <JsonLdItem key={index} data={jsonLdItem} index={index} />
           ))}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 // JSON-LDアイテムを表示するコンポーネント
 function JsonLdItem({ data, index }: { data: any, index: number }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'summary' | 'json'>('summary');
   
   // @graphがある場合はその内容を表示
   const hasGraph = data["@graph"] && Array.isArray(data["@graph"]) && data["@graph"].length > 0;
   
   return (
-    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-      <div 
-        className="bg-gray-100 dark:bg-gray-900 px-4 py-3 flex justify-between items-center cursor-pointer"
+    <Card> {/* div を Card に変更 */}
+      <CardHeader 
+        className="flex flex-row items-center justify-between space-x-2 py-3 cursor-pointer bg-muted/50" /* CardHeader を使用し、スタイル調整 */
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <CardTitle className="text-sm font-medium"> {/* CardTitle を使用 */}
             構造化データ #{index + 1}
-          </span>
+          </CardTitle>
           {hasGraph && (
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+            <Badge variant="secondary"> {/* span を Badge に変更 */}
               {data["@graph"].length}アイテム
-            </span>
+            </Badge>
           )}
         </div>
-        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6"> {/* button を Button に変更 */}
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </Button>
+      </CardHeader>
       
       {isExpanded && (
-        <div className="border-t dark:border-gray-700">
-          {/* タブナビゲーション */}
-          <div className="flex border-b dark:border-gray-700">
-            <button
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'summary'
-                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'
-              }`}
-              onClick={() => setActiveTab('summary')}
-            >
-              概要表示
-            </button>
-            <button
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'json'
-                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'
-              }`}
-              onClick={() => setActiveTab('json')}
-            >
-              JSON表示
-            </button>
-          </div>
-          
-          {/* タブコンテンツ */}
-          <div className="p-4 bg-white dark:bg-gray-800">
-            {activeTab === 'summary' ? (
-              hasGraph ? (
+        <CardContent className="p-0 pt-0 border-t"> {/* CardContent を使用し、padding調整 */}
+          <Tabs defaultValue="summary" className="w-full">
+            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0"> {/* TabsList を使用 */}
+              <TabsTrigger value="summary" className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"> {/* TabsTrigger を使用 */}
+                概要表示
+              </TabsTrigger>
+              <TabsTrigger value="json" className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"> {/* TabsTrigger を使用 */}
+                JSON表示
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="summary" className="p-4 m-0"> {/* TabsContent を使用 */}
+              {hasGraph ? (
                 <GraphItemsDisplay items={data["@graph"]} />
               ) : (
                 <SingleItemDisplay item={data} />
-              )
-            ) : (
-              <div className="overflow-x-auto">
-                <pre className="text-xs text-gray-800 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded border dark:border-gray-700">
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </TabsContent>
+            <TabsContent value="json" className="p-4 m-0"> {/* TabsContent を使用 */}
+              <Card className="overflow-hidden"> {/* JSON 表示を Card でラップ */}
+                <CardContent className="p-3 bg-muted/80"> {/* CardContent を使用 */}
+                  <pre className="text-xs whitespace-pre-wrap overflow-x-auto">
+                    {JSON.stringify(data, null, 2)}
+                  </pre>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -120,22 +110,22 @@ function GraphItemsDisplay({ items }: { items: any[] }) {
           const { color, bgColor, icon: Icon } = getTypeInfo(type);
           
           return (
-            <div key={index} className="border dark:border-gray-700 rounded-lg overflow-hidden">
-              <div className={`px-3 py-2 ${bgColor} flex items-center justify-between`}>
+            <Card key={index} className="overflow-hidden"> {/* div を Card に変更 */}
+              <CardHeader className={`flex flex-row items-center justify-between space-x-2 p-3 ${bgColor}`}> {/* CardHeader を使用し、動的bgColor適用 */}
                 <div className="flex items-center gap-2">
                   <Icon size={16} className={color} />
-                  <h5 className={`text-sm font-medium ${color}`}>{type}</h5>
+                  <CardTitle className={`text-sm font-medium ${color}`}>{type}</CardTitle> {/* h5 を CardTitle に変更 */}
                 </div>
                 {item["@id"] && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px] break-all overflow-wrap-anywhere" title={item["@id"]}>
+                  <span className="text-xs text-muted-foreground truncate max-w-[150px] break-all overflow-wrap-anywhere" title={item["@id"]}> {/* text-muted-foreground を使用 */}
                     ID: {item["@id"]}
                   </span>
                 )}
-              </div>
-              <div className="p-3 bg-white dark:bg-gray-800">
+              </CardHeader>
+              <CardContent className="p-3"> {/* CardContent を使用 */}
                 <JsonLdTypeDisplay item={item} type={type} />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
@@ -149,22 +139,22 @@ function SingleItemDisplay({ item }: { item: any }) {
   const { color, bgColor, icon: Icon } = getTypeInfo(type);
   
   return (
-    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className={`px-3 py-2 ${bgColor} flex items-center justify-between`}>
+    <Card className="overflow-hidden"> {/* div を Card に変更 */}
+      <CardHeader className={`flex flex-row items-center justify-between space-x-2 p-3 ${bgColor}`}> {/* CardHeader を使用し、動的bgColor適用 */}
         <div className="flex items-center gap-2">
           <Icon size={16} className={color} />
-          <h5 className={`text-sm font-medium ${color}`}>{type || "Unknown"}</h5>
+          <CardTitle className={`text-sm font-medium ${color}`}>{type || "Unknown"}</CardTitle> {/* h5 を CardTitle に変更 */}
         </div>
         {item["@id"] && (
-          <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px] break-all overflow-wrap-anywhere" title={item["@id"]}>
+          <span className="text-xs text-muted-foreground truncate max-w-[200px] break-all overflow-wrap-anywhere" title={item["@id"]}> {/* text-muted-foreground を使用 */}
             ID: {item["@id"]}
           </span>
         )}
-      </div>
-      <div className="p-3 bg-white dark:bg-gray-800">
+      </CardHeader>
+      <CardContent className="p-3"> {/* CardContent を使用 */}
         <JsonLdTypeDisplay item={item} type={type} />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -206,7 +196,7 @@ function OrganizationDisplay({ data }: { data: any }) {
         <PropertyItem 
           label="url" 
           value={
-            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
               <span className="break-all overflow-wrap-anywhere">{data.url}</span>
               <ExternalLink size={12} className="ml-1 flex-shrink-0" />
             </a>
@@ -216,15 +206,15 @@ function OrganizationDisplay({ data }: { data: any }) {
       
       {data.logo && (
         <div>
-          <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">logo</h6>
-          <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+          <h6 className="text-xs font-medium text-muted-foreground mb-1">logo</h6> {/* text-muted-foreground を使用 */}
+          <div className="pl-3"> {/* 左ボーダーを削除 */}
             {data.logo["@type"] && <PropertyItem label="@type" value={data.logo["@type"]} />}
             {data.logo.url && (
               <PropertyItem 
                 label="url" 
                 value={
                   <div className="flex flex-col">
-                    <a href={data.logo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+                    <a href={data.logo.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
                       <span className="break-all overflow-wrap-anywhere">{data.logo.url}</span>
                       <ExternalLink size={12} className="ml-1 flex-shrink-0" />
                     </a>
@@ -249,15 +239,15 @@ function OrganizationDisplay({ data }: { data: any }) {
       
       {data.founder && (
         <div>
-          <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">founder</h6>
-          <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+          <h6 className="text-xs font-medium text-muted-foreground mb-1">founder</h6> {/* text-muted-foreground を使用 */}
+          <div className="pl-3"> {/* 左ボーダーを削除 */}
             {data.founder["@type"] && <PropertyItem label="@type" value={data.founder["@type"]} />}
             {data.founder.name && <PropertyItem label="name" value={data.founder.name} />}
             {data.founder.url && (
               <PropertyItem 
                 label="url" 
                 value={
-                  <a href={data.founder.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+                  <a href={data.founder.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
                     <span className="break-all overflow-wrap-anywhere">{data.founder.url}</span>
                     <ExternalLink size={12} className="ml-1 flex-shrink-0" />
                   </a>
@@ -283,7 +273,7 @@ function WebSiteDisplay({ data }: { data: any }) {
         <PropertyItem 
           label="url" 
           value={
-            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
               <span className="break-all overflow-wrap-anywhere">{data.url}</span>
               <ExternalLink size={12} className="ml-1 flex-shrink-0" />
             </a>
@@ -306,7 +296,7 @@ function WebPageDisplay({ data }: { data: any }) {
         <PropertyItem 
           label="url" 
           value={
-            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
               <span className="break-all overflow-wrap-anywhere">{data.url}</span>
               <ExternalLink size={12} className="ml-1 flex-shrink-0" />
             </a>
@@ -339,7 +329,7 @@ function ArticleDisplay({ data }: { data: any }) {
             label="datePublished" 
             value={
               <div className="flex items-center">
-                <Calendar size={14} className="mr-1 text-gray-500 dark:text-gray-400" />
+                <Calendar size={14} className="mr-1 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
                 {formatDate(data.datePublished)}
               </div>
             } 
@@ -351,7 +341,7 @@ function ArticleDisplay({ data }: { data: any }) {
             label="dateModified" 
             value={
               <div className="flex items-center">
-                <Calendar size={14} className="mr-1 text-gray-500 dark:text-gray-400" />
+                <Calendar size={14} className="mr-1 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
                 {formatDate(data.dateModified)}
               </div>
             } 
@@ -361,15 +351,15 @@ function ArticleDisplay({ data }: { data: any }) {
       
       {data.author && (
         <div>
-          <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">author</h6>
-          <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+          <h6 className="text-xs font-medium text-muted-foreground mb-1">author</h6> {/* text-muted-foreground を使用 */}
+          <div className="pl-3"> {/* 左ボーダーを削除 */}
             {data.author["@type"] && <PropertyItem label="@type" value={data.author["@type"]} />}
             {data.author.name && <PropertyItem label="name" value={data.author.name} />}
             {data.author.url && (
               <PropertyItem 
                 label="url" 
                 value={
-                  <a href={data.author.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+                  <a href={data.author.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
                     <span className="break-all overflow-wrap-anywhere">{data.author.url}</span>
                     <ExternalLink size={12} className="ml-1 flex-shrink-0" />
                   </a>
@@ -387,13 +377,13 @@ function ArticleDisplay({ data }: { data: any }) {
       
       {data.image && data.image.url && (
         <div>
-          <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">image</h6>
-          <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+          <h6 className="text-xs font-medium text-muted-foreground mb-1">image</h6> {/* text-muted-foreground を使用 */}
+          <div className="pl-3"> {/* 左ボーダーを削除 */}
             <PropertyItem 
               label="url" 
               value={
                 <div className="flex flex-col">
-                  <a href={data.image.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+                  <a href={data.image.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
                     <span className="break-all overflow-wrap-anywhere">{data.image.url}</span>
                     <ExternalLink size={12} className="ml-1 flex-shrink-0" />
                   </a>
@@ -425,31 +415,31 @@ function BreadcrumbListDisplay({ data }: { data: any }) {
       <div className="flex items-center flex-wrap gap-2 text-sm">
         {items.map((item: any, index: number) => (
           <div key={index} className="flex items-center">
-            {index > 0 && <span className="mx-1 text-gray-400">/</span>}
-            <span className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded text-gray-700 dark:text-gray-300 flex items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">{item.position}.</span>
+            {index > 0 && <span className="mx-1 text-muted-foreground">/</span>} {/* text-muted-foreground を使用 */}
+            <Badge variant="secondary" className="flex items-center"> {/* span を Badge に変更 */}
+              <span className="text-xs text-muted-foreground mr-1">{item.position}.</span> {/* text-muted-foreground を使用 */}
               {item.item && item.item.name}
-            </span>
+            </Badge>
           </div>
         ))}
       </div>
-      
-      <div className="space-y-2">
+
+      <div className="space-y-2"> {/* コメントアウトを解除 */}
         {items.map((item: any, index: number) => (
-          <div key={index} className="border dark:border-gray-700 rounded p-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <Card key={index} className="p-2">
+            <CardHeader className="p-0 pb-1 flex flex-row justify-between items-center">
+              <CardTitle className="text-xs font-medium">
                 アイテム #{item.position}
-              </span>
-            </div>
-            <div className="pl-2 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 pl-2 space-y-1">
               {item.item && item.item["@id"] && <PropertyItem label="@id" value={item.item["@id"]} />}
               {item.item && item.item.name && <PropertyItem label="name" value={item.item.name} />}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
-      </div>
-    </div>
+      </div> {/* コメントアウトを解除 */}
+    </div> // 閉じタグを追加
   );
 }
 
@@ -465,7 +455,7 @@ function PersonDisplay({ data }: { data: any }) {
         <PropertyItem 
           label="url" 
           value={
-            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center break-all overflow-wrap-anywhere">
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center break-all overflow-wrap-anywhere"> {/* text-primary を使用 */}
               <span className="break-all overflow-wrap-anywhere">{data.url}</span>
               <ExternalLink size={12} className="ml-1 flex-shrink-0" />
             </a>
@@ -522,7 +512,7 @@ function GenericDisplay({ data }: { data: any }) {
   
   if (mainProps.length === 0) {
     return (
-      <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+      <div className="text-sm text-muted-foreground italic"> {/* text-muted-foreground を使用 */}
         表示可能なプロパティがありません
       </div>
     );
@@ -541,8 +531,8 @@ function GenericDisplay({ data }: { data: any }) {
           
           return (
             <div key={prop}>
-              <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{prop}</h6>
-              <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+              <h6 className="text-xs font-medium text-muted-foreground mb-1">{prop}</h6> {/* text-muted-foreground を使用 */}
+              <div className="pl-3"> {/* 左ボーダーを削除 */}
                 {value["@type"] && <PropertyItem label="@type" value={value["@type"]} />}
                 {Object.keys(value)
                   .filter(k => k !== '@type')
@@ -559,8 +549,8 @@ function GenericDisplay({ data }: { data: any }) {
         if (Array.isArray(value)) {
           return (
             <div key={prop}>
-              <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{prop} ({value.length})</h6>
-              <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+              <h6 className="text-xs font-medium text-muted-foreground mb-1">{prop} ({value.length})</h6> {/* text-muted-foreground を使用 */}
+              <div className="pl-3"> {/* 左ボーダーを削除 */}
                 {value.map((item, i) => (
                   <div key={i} className="mb-2">
                     {typeof item === 'object' && item !== null ? (
@@ -568,11 +558,11 @@ function GenericDisplay({ data }: { data: any }) {
                         {Object.keys(item).map(k => (
                           <PropertyItem key={k} label={k} value={item[k]} />
                         ))}
-                      </div>
+                      </div> // 閉じタグを修正
                     ) : (
                       <div className="text-sm">{String(item)}</div>
                     )}
-                  </div>
+                  </div> // 閉じタグを修正
                 ))}
               </div>
             </div>
@@ -595,8 +585,8 @@ function PropertyItem({ label, value }: { label: string, value: any }) {
   
   return (
     <div className="mb-2">
-      <h6 className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</h6>
-      <div className="text-sm text-gray-800 dark:text-gray-200">
+      <h6 className="text-xs font-medium text-muted-foreground">{label}</h6> {/* text-muted-foreground を使用 */}
+      <div className="text-sm"> {/* text-gray-800 dark:text-gray-200 を削除 */}
         {displayValue}
       </div>
     </div>

@@ -1,54 +1,56 @@
-import type { EditableScrapingResultItem } from "~/atoms/scrapingResults";
+import type { ArticleItem } from "~/atoms/articles"; // 正しい型とパスに修正
 import { getInternalLinksCount } from "~/utils/scraping-utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"; // Card コンポーネントをインポート
+import { Badge } from "~/components/ui/badge"; // Badge コンポーネントをインポート
 
 interface ScrapingResultCardProps {
-  item: EditableScrapingResultItem;
+  item: ArticleItem; // 型名を修正
   onClick: () => void;
 }
 
 export function ScrapingResultCard({ item, onClick }: ScrapingResultCardProps) {
+  const internalLinksCount = getInternalLinksCount(item);
+
   return (
-    <div
-      className="h-full flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 cursor-pointer"
+    <Card
+      className="h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer"
       onClick={onClick}
     >
-      {/* コンテンツ部分 */}
-      <div className="flex-grow p-6 dark:bg-gray-800">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+      <CardHeader className="pb-3"> {/* Padding を調整 */}
+        <CardTitle className="text-lg line-clamp-2"> {/* text-lg に変更 */}
           {item.title || "タイトルなし"}
-        </h2>
-
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-3 block truncate"
-          onClick={(e) => e.stopPropagation()} // カード全体のクリックイベントを防止
-        >
-          {item.url}
-        </a>
-
-        <div className="mt-3 text-gray-600 dark:text-gray-300 text-sm line-clamp-4 h-20 overflow-hidden">
-          {item.content || "コンテンツなし"}
-        </div>
-      </div>
-
-      {/* フッター部分（常に最下部） */}
-      <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between mt-auto">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            item.index_status === "index"
-              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-          }`}
-        >
+        </CardTitle>
+        <CardDescription className="pt-1"> {/* pt-1 を追加 */}
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block" // block を追加
+            onClick={(e) => e.stopPropagation()} // カード全体のクリックイベントを防止
+          >
+            {item.url}
+          </a>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow text-sm text-muted-foreground line-clamp-4 h-20 overflow-hidden"> {/* text-muted-foreground を使用 */}
+        {item.content || "コンテンツなし"}
+      </CardContent>
+      <CardFooter className="py-3 flex justify-between items-center"> {/* items-center を追加 */}
+        <Badge variant={item.index_status === "index" ? "default" : "destructive"}>
           {item.index_status === "index" ? "インデックス" : "ノーインデックス"}
+        </Badge>
+        {/* internal_links を参照するように修正 */}
+        <span className="text-xs text-muted-foreground">
+          {item.internal_links?.length || 0} リンク 
         </span>
-
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {getInternalLinksCount(item)} リンク
-        </span>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

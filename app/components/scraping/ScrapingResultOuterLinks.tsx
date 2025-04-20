@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
 import { ExternalLink } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"; // Card コンポーネントをインポート
 
 interface Props {
   item: ArticleItem;
@@ -17,17 +18,17 @@ interface Props {
 
 export function ScrapingResultOuterLinks({ item }: Props) {
   return (
-    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 border-b dark:border-gray-700 flex items-center">
-        <ExternalLink className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">外部リンク</h3>
-      </div>
-      <div className="p-4 bg-white dark:bg-gray-800">
+    <Card> {/* div を Card に変更 */}
+      <CardHeader className="flex flex-row items-center space-x-2 py-3"> {/* CardHeader を使用し、スタイル調整 */}
+        <ExternalLink className="h-5 w-5 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
+        <CardTitle className="text-lg font-medium">外部リンク</CardTitle> {/* CardTitle を使用 */}
+      </CardHeader>
+      <CardContent className="p-4 pt-0"> {/* CardContent を使用し、padding調整 */}
         {item.outerLinks && item.outerLinks.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
               <TableCaption>外部リンク一覧 - 合計: {item.outerLinks.length}件</TableCaption>
-              <TableHeader className="bg-gray-50 dark:bg-gray-800">
+              <TableHeader> {/* 背景色クラスを削除 */}
                 <TableRow>
                   <TableHead className="text-xs uppercase">アンカーテキスト</TableHead>
                   <TableHead className="text-xs uppercase">リンクURL</TableHead>
@@ -54,16 +55,11 @@ export function ScrapingResultOuterLinks({ item }: Props) {
                       </a>
                     </TableCell>
                     <TableCell>
+                      {/* Badge からカスタムクラスを削除 */}
                       <Badge 
                         variant={link.isFollow !== undefined 
                           ? (link.isFollow ? "default" : "destructive") 
                           : "outline"
-                        }
-                        className={link.isFollow !== undefined 
-                          ? (link.isFollow 
-                              ? "bg-green-100 hover:bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40" 
-                              : "bg-red-100 hover:bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/40")
-                          : "bg-gray-100 hover:bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 dark:hover:bg-gray-900/40"
                         }
                       >
                         {link.isFollow !== undefined ? (link.isFollow ? 'follow' : 'nofollow') : '不明'}
@@ -71,6 +67,7 @@ export function ScrapingResultOuterLinks({ item }: Props) {
                     </TableCell>
                     <TableCell>
                       {link.status ? (
+                        /* Badge からカスタムクラスを削除 */
                         <Badge 
                           variant={
                             link.status.code === 200 
@@ -78,13 +75,6 @@ export function ScrapingResultOuterLinks({ item }: Props) {
                               : link.status.code === 301 || link.status.code === 302
                                 ? "secondary"
                                 : "destructive"
-                          }
-                          className={
-                            link.status.code === 200 
-                              ? "bg-green-100 hover:bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40" 
-                              : link.status.code === 301 || link.status.code === 302
-                                ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/40"
-                                : "bg-red-100 hover:bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/40"
                           }
                         >
                           {link.status.code}
@@ -110,11 +100,11 @@ export function ScrapingResultOuterLinks({ item }: Props) {
             </Table>
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-4 text-muted-foreground"> {/* text-muted-foreground を使用 */}
             外部リンクがありません
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

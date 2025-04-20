@@ -1,6 +1,7 @@
 import type { ArticleItem } from "~/types/article";
-import { FileText, Globe, Info } from "lucide-react";
+import { Info } from "lucide-react"; // FileText, Globe は未使用なので削除
 import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"; // Card コンポーネントをインポート
 
 interface Props {
   item: ArticleItem;
@@ -8,17 +9,17 @@ interface Props {
 
 export function ScrapingResultBasicInfo({ item }: Props) {
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="bg-background px-4 py-2 border-b flex items-center">
-        <Info className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">基本情報</h3>
-      </div>
-      <div className="p-4 bg-background">
+    <Card> {/* div を Card に変更 */}
+      <CardHeader className="flex flex-row items-center space-x-2 py-3"> {/* CardHeader を使用し、スタイル調整 */}
+        <Info className="h-5 w-5 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
+        <CardTitle className="text-lg font-medium">基本情報</CardTitle> {/* CardTitle を使用 */}
+      </CardHeader>
+      <CardContent className="p-4 pt-0"> {/* CardContent を使用し、padding調整 */}
         <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
           {/* URL */}
           <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">URL</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-gray-200 break-all overflow-wrap-anywhere">
+            <dt className="text-sm font-medium text-muted-foreground">URL</dt> {/* text-muted-foreground を使用 */}
+            <dd className="mt-1 text-sm break-all overflow-wrap-anywhere"> {/* text-gray-900 dark:text-gray-200 を削除 */}
               <a
                 href={item.articleUrl}
                 target="_blank"
@@ -32,37 +33,32 @@ export function ScrapingResultBasicInfo({ item }: Props) {
 
           {/* タイトル */}
           <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">タイトル</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-gray-200 break-words">
+            <dt className="text-sm font-medium text-muted-foreground">タイトル</dt> {/* text-muted-foreground を使用 */}
+            <dd className="mt-1 text-sm break-words"> {/* text-gray-900 dark:text-gray-200 を削除 */}
               {item.metaTitle || "タイトルなし"}
             </dd>
           </div>
 
           {/* 説明文 */}
           <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">説明文（メタディスクリプション）</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-gray-200 whitespace-pre-wrap break-words overflow-wrap-anywhere">
+            <dt className="text-sm font-medium text-muted-foreground">説明文（メタディスクリプション）</dt> {/* text-muted-foreground を使用 */}
+            <dd className="mt-1 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere"> {/* text-gray-900 dark:text-gray-200 を削除 */}
               {item.metaDescription || "説明文なし"}
             </dd>
           </div>
 
           {/* インデックス状態 */}
           <div>
-            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">インデックス状態</dt>
+            <dt className="text-sm font-medium text-muted-foreground">インデックス状態</dt> {/* text-muted-foreground を使用 */}
             <dd className="mt-1">
-              <Badge 
-                variant={item.isIndexable ? "default" : "destructive"}
-                className={item.isIndexable
-                  ? "bg-green-100 hover:bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/40"
-                  : "bg-red-100 hover:bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/40"
-                }
-              >
+              {/* Badge からカスタムクラスを削除 */}
+              <Badge variant={item.isIndexable ? "default" : "destructive"}>
                 {item.isIndexable ? 'インデックス' : 'ノーインデックス'}
               </Badge>
             </dd>
           </div>
         </dl>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

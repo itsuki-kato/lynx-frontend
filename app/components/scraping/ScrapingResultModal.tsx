@@ -43,18 +43,14 @@ export function ScrapingResultModal({
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge 
-                    variant={item.isIndexable ? "default" : "destructive"}
-                    className={item.isIndexable
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                    }
-                  >
+                  {/* Badge のカスタムクラスを削除し、variant のみ使用 */}
+                  <Badge variant={item.isIndexable ? "default" : "destructive"}>
                     {item.isIndexable ? "インデックス" : "ノーインデックス"}
                   </Badge>
                   
                   {item.jsonLd && item.jsonLd.length > 0 && (
-                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                    /* Badge のカスタムクラスを削除し、variant="secondary" を使用 */
+                    <Badge variant="secondary"> 
                       構造化データあり
                     </Badge>
                   )}
@@ -116,10 +112,8 @@ export function ScrapingResultModal({
         <DialogFooter className="p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
           
           <DialogClose asChild>
-            <Button
-              variant="outline"
-              className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
+            {/* Button のカスタムクラスを削除 */}
+            <Button variant="outline">
               <X className="h-4 w-4 mr-1" />
               閉じる
             </Button>
