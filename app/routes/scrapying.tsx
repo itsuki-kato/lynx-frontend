@@ -9,10 +9,12 @@ import { Button } from "~/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { scrapyRequestSchema, type ScrapyRequest } from "~/share/zod/schemas";
+import { useAtom } from 'jotai'; // useAtom をインポート
+import { articlesAtom } from '~/atoms/article'; // articlesAtom をインポート
 import { useScraping } from "~/hooks/use-scraping";
 import type { UseScrapingReturn } from "~/types/scraping";
 import { NavigationBlocker } from "~/components/scraping/NavigationBlocker";
-import { PageHeader } from "~/components/scraping/PageHeader";
+// import { PageHeader } from "~/components/scraping/PageHeader"; // 未使用のためコメントアウト
 import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
 import { ScrapingForm } from "~/components/scraping/ScrapingForm";
 import { ScrapingResultsList } from "~/components/scraping/ScrapingResultsList";
@@ -55,11 +57,14 @@ export default function Scrapying() {
     crawlStatus,
     progressInfo,
     errorMessage,
-    scrapedArticles,
+    // scrapedArticles, // useScrapingから削除されたためコメントアウト
     jobId,
     startScraping,
     cancelScraping
-  }: UseScrapingReturn = useScraping(token);
+  } = useScraping(token); // UseScrapingReturn 型指定を削除
+
+  // グローバルステートからスクレイピング結果を取得
+  const [globalScrapingResults] = useAtom(articlesAtom);
 
   // ナビゲーションブロッカーを設定
   const blocker = useBlocker(
@@ -76,25 +81,25 @@ export default function Scrapying() {
     },
   });
 
-  // 結果の有無を確認
-  const hasResults = scrapedArticles.length > 0;
+  // 結果の有無を確認 (グローバルステートを参照)
+  const hasResults = globalScrapingResults.length > 0;
 
   // アクティブなタブの状態管理（デフォルトはフォーム）
   const defaultTab = hasResults && crawlStatus === 'completed' ? 'results' : 'form';
 
   // 検索語の状態
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // 検索フィルター
+
+  // 検索フィルター (グローバルステートを参照)
   const filteredArticles = useMemo(() => {
-    if (!searchTerm) return scrapedArticles;
-    
-    return scrapedArticles.filter(article => 
-      article.metaTitle?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    if (!searchTerm) return globalScrapingResults;
+
+    return globalScrapingResults.filter(article =>
+      article.metaTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.articleUrl?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.metaDescription?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [scrapedArticles, searchTerm]);
+  }, [globalScrapingResults, searchTerm]);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
@@ -117,14 +122,33 @@ export default function Scrapying() {
         </div>
       )}
 
+      {/* 完了状態かつ結果がある場合のみ詳細画面遷移ボタンを表示 */}
+      {crawlStatus === 'completed' && hasResults && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/scraping/result")} // scraping-results に遷移
+          className="flex items-center ml-4"
+        >
+          詳細分析を表示
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </Button>
+      )}
+
       {/* スクレイピング状態表示 - スティッキーヘッダーとして表示 */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4">
+      {/* ボタンを削除 */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 border-b">
         <div className="container max-w-7xl mx-auto py-3">
-          <ScrapingStatus
-            crawlStatus={crawlStatus}
-            progressInfo={progressInfo}
-            errorMessage={errorMessage}
-          />
+          <div className="flex justify-between items-center">
+            <ScrapingStatus
+              crawlStatus={crawlStatus}
+              progressInfo={progressInfo}
+              errorMessage={errorMessage}
+            />
+            {/* ボタンは TabsList の隣に移動 */}
+          </div>
         </div>
       </div>
 
@@ -143,11 +167,25 @@ export default function Scrapying() {
                     結果
                     {hasResults && (
                       <Badge variant="secondary" className="ml-2">
-                        {scrapedArticles.length}
+                        {globalScrapingResults.length} {/* グローバルステートを参照 */}
                       </Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
+                {/* 完了状態かつ結果がある場合のみ詳細画面遷移ボタンを表示 */}
+                {crawlStatus === 'completed' && hasResults && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/scraping-results")} // scraping-results に遷移
+                    className="flex items-center ml-4"
+                  >
+                    詳細分析を表示
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </Button>
+                )}
               </div>
 
               {/* 検索フィールド（結果タブ用） */}
@@ -217,24 +255,24 @@ export default function Scrapying() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">総記事数</p>
-                      <p className="text-2xl font-bold">{scrapedArticles.length}</p>
+                      <p className="text-2xl font-bold">{globalScrapingResults.length}</p> {/* グローバルステートを参照 */}
                     </div>
                     <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">内部リンク合計</p>
                       <p className="text-2xl font-bold">
-                        {scrapedArticles.reduce((sum, article) => sum + (article.internalLinks?.length || 0), 0)}
+                        {globalScrapingResults.reduce((sum, article) => sum + (article.internalLinks?.length || 0), 0)} {/* グローバルステートを参照 */}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border bg-card">
                       <p className="text-sm text-muted-foreground">外部リンク合計</p>
                       <p className="text-2xl font-bold">
-                        {scrapedArticles.reduce((sum, article) => sum + (article.outerLinks?.length || 0), 0)}
+                        {globalScrapingResults.reduce((sum, article) => sum + (article.outerLinks?.length || 0), 0)} {/* グローバルステートを参照 */}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
-              
+
               <div className="border rounded-lg overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-4">
@@ -242,7 +280,7 @@ export default function Scrapying() {
                     {hasResults && (
                       <div className="flex items-center">
                         <Badge variant="secondary">
-                          {filteredArticles.length}/{scrapedArticles.length}件
+                          {filteredArticles.length}/{globalScrapingResults.length}件 {/* グローバルステートを参照 */}
                         </Badge>
                       </div>
                     )}
@@ -251,14 +289,14 @@ export default function Scrapying() {
                     取得した記事データの一覧です
                   </p>
                   <div className="overflow-x-hidden">
-                    <ScrapingResultsList articles={filteredArticles} />
+                    <ScrapingResultsList articles={filteredArticles} /> {/* filteredArticles はグローバルステート由来 */}
                   </div>
                   {hasResults && (
                     <div className="mt-6 pt-4 border-t flex justify-end">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate("/scraping/result")}
+                        onClick={() => navigate("/scraping/result")} // scraping-results に遷移
                         className="flex items-center"
                       >
                         詳細分析を表示

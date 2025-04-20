@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'; // useEffectを削除 (現時点では不要)
+import { useState, useRef, useCallback } from 'react';
 import { useAtom } from 'jotai';
 import { articlesAtom } from '~/atoms/article';
 import { useToast } from '~/hooks/use-toast';
@@ -13,31 +13,18 @@ export function useScraping(token?: string): UseScrapingReturn {
   // スクレイピングの状態管理
   const [crawlStatus, setCrawlStatus] = useState<CrawlStatus>('idle');
   const [progressInfo, setProgressInfo] = useState<ProgressInfo | null>(null);
-  const [scrapedArticles, setScrapedArticles] = useState<ArticleItem[]>([]);
+  // scrapedArticles ローカルステートを削除し、代わりに globalScrapingResults を使用
+  // const [scrapedArticles, setScrapedArticles] = useState<ArticleItem[]>([]);
+  const [globalScrapingResults, setGlobalScrapingResults] = useAtom(articlesAtom);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [, setGlobalScrapingResults] = useAtom(articlesAtom);
   const { toast } = useToast();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 状態をリセットする関数
-  const resetState = useCallback(() => {
-    console.log("Resetting scraping state...");
-    setCrawlStatus('idle');
-    setProgressInfo(null);
-    setScrapedArticles([]);
-    setErrorMessage(null);
-    setJobId(null);
-    setGlobalScrapingResults([]);
-    
-    // AbortControllerがあれば中断
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-  }, [setGlobalScrapingResults]);
+  // 状態リセットは startScraping 内で行うため、独立した resetState 関数は不要
+  // const resetState = useCallback(() => { ... }, []);
 
-  // 中断処理関数 (変更なし)
+  // 中断処理関数
   const cancelScraping = useCallback(async (isNavigating = false) => {
     if (!jobId) {
       console.warn("Cannot cancel scraping: Job ID is not set.");
@@ -49,8 +36,8 @@ export function useScraping(token?: string): UseScrapingReturn {
         abortControllerRef.current = null;
         console.log("Fetch aborted by frontend.");
       }
-      // 中断時にもグローバルステートを更新
-      setGlobalScrapingResults(scrapedArticles);
+      // 中断時は現在のグローバルステートを保持 (特に更新は不要)
+      // setGlobalScrapingResults(globalScrapingResults); // 不要
       if (!isNavigating) {
         toast({
           title: "中断処理",
@@ -104,22 +91,23 @@ export function useScraping(token?: string): UseScrapingReturn {
       }
     } finally {
       // 中断時の状態リセットは常に実行
-      setGlobalScrapingResults(scrapedArticles); // 中断時点の結果を保存
+      // setGlobalScrapingResults(globalScrapingResults); // 不要
       setCrawlStatus('idle');
       setJobId(null);
       setProgressInfo(null);
     }
-  }, [jobId, toast, scrapedArticles, setGlobalScrapingResults]);
+  }, [jobId, toast, setGlobalScrapingResults]); // globalScrapingResults を依存配列から削除
 
   // フォーム送信時の処理 (fetchとストリーム処理を開始)
   const startScraping = useCallback(async (values: { startUrl: string; targetClass: string }) => {
     // 状態をリセット
+    console.log("Starting scraping, resetting state...");
     setCrawlStatus('running');
     setProgressInfo(null);
-    setScrapedArticles([]);
+    // setScrapedArticles([]); // ローカルステート削除
     setErrorMessage(null);
     setJobId(null);
-    setGlobalScrapingResults([]);
+    setGlobalScrapingResults([]); // グローバルステートをリセット
     abortControllerRef.current = new AbortController();
 
     try {
@@ -171,7 +159,7 @@ export function useScraping(token?: string): UseScrapingReturn {
       const reader = response.body.getReader();
 
       // ストリーム処理ユーティリティを呼び出すためのコールバックを定義
-      let accumulatedArticles: ArticleItem[] = [];
+      // let accumulatedArticles: ArticleItem[] = []; // グローバルステートを直接更新するため不要
       await processScrapingStream(reader, {
         onStatus: (message) => {
           setProgressInfo({ message, processedPages: 0, elapsedTime: 0 });
@@ -180,26 +168,28 @@ export function useScraping(token?: string): UseScrapingReturn {
           setProgressInfo(progress);
         },
         onData: (article) => {
-          // データを蓄積し、ローカルステートを更新
-          accumulatedArticles = [...accumulatedArticles, article];
-          setScrapedArticles(accumulatedArticles);
+          // グローバルステートを直接更新
+          setGlobalScrapingResults(prev => [...prev, article]);
         },
         onCompletion: (completionInfo) => {
           setProgressInfo(prev => ({ ...prev, ...completionInfo }));
-          setGlobalScrapingResults(accumulatedArticles); // 完了時にグローバルステートを更新
-          console.log('Jotai state updated on completion:', accumulatedArticles);
+          // setGlobalScrapingResults(accumulatedArticles); // onDataで更新済み
+          console.log('Scraping completed.');
           setCrawlStatus('completed');
         },
         onError: (errorMsg) => {
           setErrorMessage(errorMsg);
-          setGlobalScrapingResults(accumulatedArticles); // エラー時もそれまでの結果を保存
+          // setGlobalScrapingResults(accumulatedArticles); // エラー時もそれまでの結果を保持 (onDataで更新済み)
           setCrawlStatus('error');
         },
         onStreamEnd: () => {
           // 予期せぬ終了の場合 (completion/errorなし)
-          setGlobalScrapingResults(accumulatedArticles);
-          console.log('Jotai state updated on unexpected stream end:', accumulatedArticles);
-          setCrawlStatus('completed'); // 暫定的に完了扱いとする
+          // setGlobalScrapingResults(accumulatedArticles); // onDataで更新済み
+          console.log('Stream ended unexpectedly.');
+          // 完了状態にするか、エラー状態にするかは要検討。ここでは完了扱い。
+          if (crawlStatus !== 'error' && crawlStatus !== 'completed') {
+             setCrawlStatus('completed');
+          }
         }
       });
 
@@ -220,7 +210,7 @@ export function useScraping(token?: string): UseScrapingReturn {
     crawlStatus,
     progressInfo,
     errorMessage,
-    scrapedArticles,
+    // scrapedArticles, // 削除
     jobId,
     startScraping,
     cancelScraping

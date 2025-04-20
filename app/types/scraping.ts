@@ -22,7 +22,7 @@ export interface UseScrapingReturn {
   crawlStatus: CrawlStatus;
   progressInfo: ProgressInfo | null;
   errorMessage: string | null;
-  scrapedArticles: ArticleItem[];
+  // scrapedArticles: ArticleItem[]; // 削除: グローバルステートで管理するため
   jobId: string | null;
   startScraping: (values: { startUrl: string; targetClass: string }) => Promise<void>;
   cancelScraping: (isNavigating?: boolean) => Promise<void>;
