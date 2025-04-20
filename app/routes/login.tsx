@@ -1,52 +1,58 @@
 import { FcGoogle } from "react-icons/fc";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "~/components/ui/card";
+import { ArrowRight } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { ThemeProvider } from "~/components/ui/theme-provider";
 
+/**
+ * ログインページコンポーネント
+ * LPのデザインに忠実に合わせたモダンなデザイン
+ */
 export default function Login() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="theme">
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 md:p-8">
+    <section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-background py-24 lg:py-32">
+      {/* 背景装飾 - LPと同じスタイル */}
+      <div className="absolute top-0 right-0 z-0 h-full w-1/2 rounded-bl-[100%] bg-gradient-to-r from-emerald-400/5 to-emerald-400/15" />
+      
+      <div className="container relative z-10 mx-auto flex flex-col items-center px-4 md:px-6">
+        {/* ロゴ - LPと同じサイズ */}
+        <img 
+          src="/lynx_logo_main.webp" 
+          alt="LYNX" 
+          className="mb-10 h-16"
+        />
         
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-4xl font-semibold tracking-tight text-emerald-600 dark:text-emerald-400">LYNX</h1>
-            <p className="text-sm text-muted-foreground">サイト管理をもっと効率的に</p>
-          </div>
-
-          <Card className="border-2 border-muted">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl text-center">ログイン</CardTitle>
-              <CardDescription className="text-center">
-                Googleアカウントでログインして始めましょう
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <a href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`} className="w-full">
-                <Button 
-                  variant="outline" 
-                  className="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 flex items-center justify-center gap-2 h-12 transition-all duration-300 hover:shadow-md"
-                >
-                  <FcGoogle className="h-5 w-5" />
-                  <span>Googleでサインイン</span>
-                </Button>
-              </a>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
-              <p>
-                ログインすることで、利用規約とプライバシーポリシーに同意したことになります。
-              </p>
-            </CardFooter>
-          </Card>
+        {/* タイトル - LPと同じフォントスタイル */}
+        <h1 className="mb-6 text-center text-4xl font-extrabold leading-tight md:text-5xl">
+          <span className="text-emerald-600 dark:text-emerald-400">LYNX</span>へようこそ
+        </h1>
+        
+        {/* 説明文 - LPと同じスタイル */}
+        <p className="mx-auto mb-10 max-w-xl text-center text-xl leading-relaxed text-muted-foreground">
+          Googleアカウントでログインして、サイト管理を始めましょう
+        </p>
+        
+        {/* ログインボタン - LPのボタンと同じスタイル */}
+        <div className="mb-16">
+          <a href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`}>
+            <Button 
+              size="lg" 
+              className="flex items-center gap-2 bg-emerald-600 px-8 py-6 text-lg font-bold text-white shadow-lg hover:bg-emerald-700"
+            >
+              <FcGoogle className="h-6 w-6" />
+              <span>Googleでログイン</span>
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </a>
+        </div>
+        
+        {/* フッター情報 */}
+        <div className="text-center text-sm text-muted-foreground">
+          <p className="mb-2">
+            ログインすることで、<a href="/terms" className="text-emerald-600 hover:underline dark:text-emerald-400">利用規約</a>と
+            <a href="/privacy" className="text-emerald-600 hover:underline dark:text-emerald-400">プライバシーポリシー</a>に同意したことになります。
+          </p>
+          <p>© 2025 LYNX. All rights reserved.</p>
         </div>
       </div>
-    </ThemeProvider>
+    </section>
   );
 }
