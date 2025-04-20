@@ -1,10 +1,9 @@
 import type { Route } from "./+types/home";
-import { useLoaderData, useNavigate, useActionData, Form } from "react-router";
+import { useLoaderData, useNavigate, useActionData, Form, useNavigation } from "react-router"; // useNavigation をインポート
 import { getSession } from "~/utils/session.server";
 import { requireAuth } from "~/utils/auth.server";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "~/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { useAtom } from "jotai";
 import { articlesAtom } from "~/atoms/article";
 import type { ArticleItem } from "~/types/article";
@@ -13,7 +12,7 @@ import { ScrapingResultModal } from "~/components/scraping/ScrapingResultModal";
 import { useToast } from "~/hooks/use-toast";
 import { useResetAtom } from "jotai/utils";
 import type { HeadingItem } from "~/types/article";
-import { ArticleGrid } from "~/components/common/ArticleGrid"; // ArticleGridをインポート
+import { ArticleGrid } from "~/components/common/ArticleGrid";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -71,7 +70,10 @@ function convertHeadings(headings: HeadingItem[]): any[] {
   }));
 }
 
-export const action = async ({ request }: Route.ActionArgs) => {
+// action関数の戻り値の型を定義
+type ActionResponse = { ok: true } | { ok: false; error: string };
+
+export const action = async ({ request }: Route.ActionArgs): Promise<Response> => {
   // ログインチェック
   await requireAuth(request);
 
@@ -87,10 +89,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       const articlesData = formData.get("articlesData");
 
       if (!articlesData) {
-        return new Response(JSON.stringify({
-          ok: false,
-          error: "記事データが見つかりません"
-        }), {
+        return new Response(JSON.stringify({ ok: false, error: "記事データが見つかりません" } as ActionResponse), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -110,17 +109,14 @@ export const action = async ({ request }: Route.ActionArgs) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return new Response(JSON.stringify({
-          ok: false,
-          error: errorData.message || `API error: ${response.status}`
-        }), {
+        const errorData = await response.json().catch(() => ({ message: `API error: ${response.status}` }));
+        return new Response(JSON.stringify({ ok: false, error: errorData.message || `API error: ${response.status}` } as ActionResponse), {
           status: response.status,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true } as ActionResponse), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -129,14 +125,18 @@ export const action = async ({ request }: Route.ActionArgs) => {
       return new Response(JSON.stringify({
         ok: false,
         error: error instanceof Error ? error.message : "保存中にエラーが発生しました"
-      }), {
+      } as ActionResponse), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
   }
 
-  return null;
+  // _action が 'save' 以外の場合は適切なエラーレスポンスを返す
+  return new Response(JSON.stringify({ ok: false, error: "Invalid action" } as ActionResponse), {
+    status: 400,
+    headers: { 'Content-Type': 'application/json' }
+  });
 };
 
 export default function ScrapingResults() {
@@ -146,9 +146,11 @@ export default function ScrapingResults() {
   const navigate = useNavigate();
   const [selectedItem, setSelectedItem] = useState<ArticleItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const actionData = useActionData();
+  const actionData = useActionData<ActionResponse>(); // 定義した ActionResponse 型を使用
   const { toast } = useToast();
   const [saveCompleted, setSaveCompleted] = useState(false);
+  const navigation = useNavigation(); // useNavigation フックを使用
+  const isSaving = navigation.state === 'submitting' && navigation.formData?.get('_action') === 'save'; // 保存中かどうかを判定
 
   /**
    * コンテンツ管理へボタンをクリックしたときの処理
@@ -160,8 +162,9 @@ export default function ScrapingResults() {
 
   // 保存結果に応じてトースト通知を表示
   useEffect(() => {
+    // actionData が存在する場合のみ処理
     if (actionData) {
-      if (actionData.ok) {
+      if (actionData.ok === true) { // actionData.ok が true かどうかをチェック
         toast({
           title: "保存完了",
           description: "スクレイピング結果をDBに保存しました",
@@ -169,10 +172,10 @@ export default function ScrapingResults() {
         });
 
         setSaveCompleted(true);
-      } else {
+      } else if (actionData.ok === false) { // actionData.ok が false の場合 (エラーケース)
         toast({
           title: "エラー",
-          description: actionData.error || "保存に失敗しました",
+          description: actionData.error || "保存に失敗しました", // actionData.error を表示
           variant: "destructive",
         });
       }
@@ -223,11 +226,21 @@ export default function ScrapingResults() {
                 />
                 <Button
                   type="submit"
+                  disabled={isSaving} // 保存中はボタンを無効化
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h1a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h1v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                  </svg>
-                  DBに保存する
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {/* ローディングアイコン */}
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h1a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h1v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                      </svg>
+                      DBに保存する
+                    </>
+                  )}
                 </Button>
               </Form>
             ) : saveCompleted && (
