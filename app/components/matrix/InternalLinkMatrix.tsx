@@ -140,13 +140,15 @@ export default function InternalLinkMatrix({
           <TableRow>
             {/* 左上の空セル */}
             <TableHead className="sticky left-0 top-0 z-20 bg-background border-r border-b w-40 min-w-[160px]"> {/* 固定 */}
-              <div className="flex items-center justify-between">
-                <span>発リンク → / 被リンク ↓</span>
+              <div>
+                <span>発リンク →</span>
+                <br />
+                <span>被リンク ↓</span>
               </div>
             </TableHead>
             {/* 発リンク側のリンク数列ヘッダー */}
             <TableHead
-              className="border-b border-l min-w-[80px] text-center align-middle sticky top-0 z-10 bg-background"
+              className="border-b border-l w-16 min-w-[64px] text-center align-middle sticky top-0 z-10 bg-background" // 幅を調整
             >
               <div className="flex items-center justify-center">
                 <Hash className="h-4 w-4 mr-1" />
@@ -191,7 +193,10 @@ export default function InternalLinkMatrix({
               return (
                 <TableCell
                   key={`check-count-col-${colArticle.id}`}
-                  className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
+                  className={cn(
+                    "border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 w-16 min-w-[64px]", // 幅を調整
+                    isZero ? 'text-red-600 dark:text-red-400' : ''
+                  )}
                   onClick={() => onLinkCountClick(colArticle, 'outgoing')} // 発リンク数クリック
                 >
                   {count}
@@ -219,7 +224,10 @@ export default function InternalLinkMatrix({
               </TableHead>
               {/* 被リンク数 */}
               <TableCell
-                className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${rowArticle.id !== undefined && incomingLinksCount[rowArticle.id] === 0 ? 'text-red-600 dark:text-red-400' : ''}`}
+                className={cn(
+                  "border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 sticky min-w-[64px]",
+                  rowArticle.id !== undefined && incomingLinksCount[rowArticle.id] === 0 ? 'text-red-600 dark:text-red-400' : ''
+                )}
                 onClick={() => onLinkCountClick(rowArticle, 'incoming')} // 被リンク数クリック
               >
                 {rowArticle.id !== undefined ? incomingLinksCount[rowArticle.id] || 0 : 0}
