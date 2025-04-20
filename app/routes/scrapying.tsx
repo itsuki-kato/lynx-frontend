@@ -80,9 +80,10 @@ export default function Scrapying() {
   const defaultTab = hasResults && crawlStatus === 'completed' ? 'results' : 'form';
 
   return (
-    <div className="bg-gradient-to-b from-background to-muted/20 min-h-screen py-12 px-4 sm:px-6 lg:px-8 overflow-x-hidden">
+    // min-h-screenを削除し、flex flex-col flex-growを追加して親要素の高さいっぱいに広げ、内部要素を縦に並べる
+    <div className="bg-gradient-to-b from-background to-muted/20 flex flex-col flex-grow py-12 px-4 sm:px-6 lg:px-8 overflow-x-hidden">
 
-      <div className="max-w-6xl mx-auto overflow-hidden"> {/* コンテナ幅を拡大し、オーバーフロー制御を追加 */}
+      <div className="max-w-6xl mx-auto overflow-hidden w-full"> {/* w-fullを追加してコンテナが幅いっぱいに広がるように */}
         {/* ページヘッダー */}
         <PageHeader
           hasResults={hasResults}

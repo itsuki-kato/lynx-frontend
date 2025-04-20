@@ -223,7 +223,7 @@ export default function InternalLinkMatrixRoute() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       {/* ページヘッダー（固定表示されない） */}
       <div className="container py-6 max-w-7xl">
         <h1 className="text-2xl font-bold">内部リンク マトリクス</h1>
@@ -265,9 +265,9 @@ export default function InternalLinkMatrixRoute() {
       </div>
 
       {/* マトリクス表示エリア */}
-      <div className="flex-grow py-4 w-full">
+      <div className="flex-grow py-4 w-full overflow-auto">
         <div 
-          className="border rounded-lg overflow-x-auto"
+          className="border rounded-lg overflow-x-auto h-full"
           style={{ 
             width: '100%',
             marginLeft: 0,

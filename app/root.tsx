@@ -77,9 +77,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          {/* Main Content */}
+          {/* Main Content - flex flex-col justify-center を追加 */}
           <main className={cn(
-            "flex-grow p-6 text-muted-foreground max-w-screen-2xl w-full mx-auto"
+            "flex flex-col justify-center flex-grow p-6 text-muted-foreground max-w-screen-2xl w-full mx-auto overflow-auto"
           )}>
             {children}
           </main>

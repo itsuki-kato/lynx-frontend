@@ -8,7 +8,8 @@ import { Button } from "~/components/ui/button";
  */
 export default function Login() {
   return (
-    <section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-background py-24 lg:py-32">
+    // h-screenを削除し、flex-growを追加して親要素の高さいっぱいに広げる
+    <section className="relative flex flex-grow w-full flex-col items-center justify-center overflow-hidden bg-background">
       {/* 背景装飾 - LPと同じスタイル */}
       <div className="absolute top-0 right-0 z-0 h-full w-1/2 rounded-bl-[100%] bg-gradient-to-r from-emerald-400/5 to-emerald-400/15" />
       
