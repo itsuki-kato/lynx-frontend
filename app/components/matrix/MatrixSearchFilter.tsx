@@ -65,7 +65,7 @@ export default function MatrixSearchFilter({
   };
 
   return (
-    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 w-full border-b border-border/40 shadow-sm overflow-x-hidden">
+    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 w-full shadow-sm overflow-x-hidden">
       <div className="container flex flex-col gap-4 py-4 max-w-full">
         {/* 検索ボックス */}
         <div className="relative w-full max-w-md">
@@ -75,7 +75,7 @@ export default function MatrixSearchFilter({
           <input
             type="text"
             placeholder="タイトル、URL、説明で検索..."
-            className="w-full pl-10 pr-10 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="w-full pl-10 pr-10 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

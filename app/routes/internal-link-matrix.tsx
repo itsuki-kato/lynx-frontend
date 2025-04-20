@@ -225,7 +225,7 @@ export default function InternalLinkMatrixRoute() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] overflow-hidden">
       {/* ページヘッダー（固定表示されない） */}
-      <div className="container py-6 max-w-7xl mx-auto">
+      <div className="container py-6 max-w-7xl">
         <h1 className="text-2xl font-bold">内部リンク マトリクス</h1>
         <p className="text-muted-foreground">
           記事間の内部リンクの有無をマトリクス形式で表示します。行が被リンク記事、列が発リンク記事です。
@@ -234,7 +234,7 @@ export default function InternalLinkMatrixRoute() {
 
       {/* エラーメッセージ表示 (loaderからのエラー) */}
       {loaderError && (
-        <div className="container mb-4 mx-auto">
+        <div className="container mb-4">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>データ読み込みエラー</AlertTitle>
@@ -245,7 +245,7 @@ export default function InternalLinkMatrixRoute() {
 
       {/* 検索・フィルター・AI分析ボタン部分（固定表示） */}
       <div className="sticky top-0 z-10 bg-background mb-4">
-        <div className="container py-3 flex flex-wrap items-center gap-4 max-w-7xl mx-auto">
+        <div className="container py-3 flex flex-wrap items-center gap-4 max-w-7xl">
           <MatrixSearchFilter
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}

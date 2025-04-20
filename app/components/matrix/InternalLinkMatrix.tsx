@@ -135,7 +135,7 @@ export default function InternalLinkMatrix({
 
   return (
     <div className="overflow-x-auto overflow-y-hidden relative w-full" style={{ scrollbarWidth: 'thin' }}>
-      <Table className="border table-fixed"> {/* table-fixed に変更してセル幅を固定 */}
+      <Table>
         <TableHeader>
           <TableRow>
             {/* 左上の空セル */}
