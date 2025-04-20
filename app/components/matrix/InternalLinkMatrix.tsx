@@ -48,7 +48,7 @@ export default function InternalLinkMatrix({
       const rowId = rowArticle.id; // 行ID（被リンク記事）
       if (rowId === undefined) return;
       matrix[rowId] = {};
-      
+
       articles.forEach(colArticle => {
         const colId = colArticle.id; // 列ID（発リンク記事）
         if (colId === undefined) return;
@@ -58,7 +58,7 @@ export default function InternalLinkMatrix({
           matrix[rowId][colId] = false;
           return;
         }
-        
+
         // 列の記事（発リンク記事）から行の記事（被リンク記事）へのリンクがあるか確認
         const hasLink = colArticle.internalLinks?.some(link => {
           try {
@@ -71,7 +71,7 @@ export default function InternalLinkMatrix({
             return link.linkUrl === rowArticle.articleUrl;
           }
         }) || false;
-        
+
         matrix[rowId][colId] = hasLink;
       });
     });
@@ -144,7 +144,7 @@ export default function InternalLinkMatrix({
                 <span>発リンク → / 被リンク ↓</span>
               </div>
             </TableHead>
-            {/* チェック数列ヘッダー */}
+            {/* 発リンク側のリンク数列ヘッダー */}
             <TableHead
               className="border-b border-l min-w-[80px] text-center align-middle sticky top-0 z-10 bg-background"
             >
@@ -180,7 +180,7 @@ export default function InternalLinkMatrix({
                 <span>リンク数</span>
               </div>
             </TableHead>
-            {/* 空のセル（チェック数列との交差部分） */}
+            {/* 空のセル（被リンク側のリンク数列との交差部分） */}
             <TableCell className="border border-l text-center bg-gray-100 dark:bg-gray-800">
             </TableCell>
             {/* 各列の発リンク数 */}
@@ -218,19 +218,12 @@ export default function InternalLinkMatrix({
                 </div>
               </TableHead>
               {/* 被リンク数 */}
-              {(() => {
-                const count = rowArticle.id !== undefined ? incomingLinksCount[rowArticle.id] || 0 : 0;
-                const isZero = count === 0;
-
-                return (
-                  <TableCell
-                    className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${isZero ? 'text-red-600 dark:text-red-400' : ''}`}
-                    onClick={() => onLinkCountClick(rowArticle, 'incoming')} // 被リンク数クリック
-                  >
-                    {count}
-                  </TableCell>
-                );
-              })()}
+              <TableCell
+                className={`border border-l text-center font-medium bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${rowArticle.id !== undefined && incomingLinksCount[rowArticle.id] === 0 ? 'text-red-600 dark:text-red-400' : ''}`}
+                onClick={() => onLinkCountClick(rowArticle, 'incoming')} // 被リンク数クリック
+              >
+                {rowArticle.id !== undefined ? incomingLinksCount[rowArticle.id] || 0 : 0}
+              </TableCell>
 
               {/* セル (リンク有無) - 行が被リンク記事、列が発リンク記事 */}
               {articles.map((colArticle) => {
@@ -244,10 +237,10 @@ export default function InternalLinkMatrix({
                 const isColIsolated = colId !== undefined && isolatedArticleIds.has(colId);
 
                 return (
-                <TableCell
-                  key={`cell-${rowId}-${colId}`}
-                  className={cn(
-                    "border border-l text-center p-0 h-12 w-12 min-w-[48px]",
+                  <TableCell
+                    key={`cell-${rowId}-${colId}`}
+                    className={cn(
+                      "border border-l text-center p-0 h-12 w-12 min-w-[48px]",
                       getCellStyle(
                         hasLink,
                         isSelfLink,
