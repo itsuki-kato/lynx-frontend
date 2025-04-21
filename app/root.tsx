@@ -36,7 +36,7 @@ export const links: Route.LinksFunction = () => [
 // loader関数を追加してセッションからログイン状態を取得
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get('Cookie'));
-  const isAuthenticated = !!session.get('userId'); // userId があればログイン状態とみなす
+  const isAuthenticated = !!session.get('token'); // token があればログイン状態とみなす
   return { isAuthenticated };
 }
 
@@ -46,7 +46,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = matches.some((match) => match.id === 'routes/login');
   const isLandingPage = matches.some((match) => match.id === 'routes/landing');
+
+  // ログインページまたはLPで、かつ認証されていない場合はシンプルレイアウトを使用
   const isSimpleLayoutPage = isLoginPage || (isLandingPage && !isAuthenticated);
+
+  console.log("is:", isSimpleLayoutPage);
 
   const { theme, toggleTheme } = useTheme();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -80,7 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           theme={theme}
           toggleTheme={toggleTheme}
           onOpenMobileSidebar={handleOpenMobileSidebar}
-          isLoginPage={isSimpleLayoutPage}
+          isSimpleLayoutPage={isSimpleLayoutPage}
         />
 
         {/* pt-16はヘッダーの高さ分 */}

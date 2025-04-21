@@ -13,7 +13,7 @@ interface HeaderProps {
   theme: Theme;
   toggleTheme: () => void;
   onOpenMobileSidebar: () => void;
-  isLoginPage?: boolean; // isLoginPage プロパティを追加 (オプショナル)
+  isSimpleLayoutPage?: boolean;
 }
 
 /**
@@ -21,7 +21,7 @@ interface HeaderProps {
  * サイドバーのナビゲーションをヘッダーに統合
  * @param {HeaderProps} props - コンポーネントのプロパティ
  */
-export function Header({ theme, toggleTheme, onOpenMobileSidebar, isLoginPage }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenMobileSidebar, isSimpleLayoutPage }: HeaderProps) {
   const location = useLocation(); // 現在のパスを取得
 
   // ナビゲーションアイテムの定義
@@ -47,7 +47,7 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar, isLoginPage }:
           </Link>
 
           {/* デスクトップ用ナビゲーション (ログインページ以外で表示) */}
-          {!isLoginPage && (
+          {!isSimpleLayoutPage && (
             <nav className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
                 <NavLink
@@ -83,7 +83,7 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar, isLoginPage }:
           </Button>
 
           {/* ログアウトボタン (ログインページ以外で表示) */}
-          {!isLoginPage && (
+          {!isSimpleLayoutPage && (
             <Form method="post" action="/logout" className="hidden md:block">
               <Button
                 type="submit"
@@ -98,7 +98,7 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar, isLoginPage }:
           )}
 
           {/* モバイル用ハンバーガーメニュー (ログインページ以外で表示) */}
-          {!isLoginPage && (
+          {!isSimpleLayoutPage && (
             <div className="md:hidden">
               <Button
                 variant="ghost"
