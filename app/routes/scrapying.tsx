@@ -105,9 +105,9 @@ export default function Scrapying() {
   }, [globalScrapingResults, searchTerm]);
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col py-12 px-4">
       {/* ページヘッダー（固定表示されない） */}
-      <div className="container py-6 max-w-7xl mx-auto">
+      <div className="container max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold">サイト分析ツール</h1>
         <p className="text-muted-foreground">
           URLとクラス名を入力して、ウェブサイトの構造を分析します。
