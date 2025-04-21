@@ -5,16 +5,19 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
   useMatches,
-} from "react-router";
-import { useState } from "react";
-import type { Route } from "./+types/root";
-import stylesheet from "./app.css?url";
-import { Toaster } from "~/components/ui/toaster";
-import { Header } from "~/components/layout/Header";
-import { MobileSidebar } from "~/components/layout/MobileSidebar";
-import { useTheme } from "~/hooks/use-theme";
-import { cn } from "~/lib/utils";
+  type LoaderFunctionArgs,
+} from 'react-router';
+import { useState } from 'react';
+import type { Route } from './+types/root';
+import stylesheet from './app.css?url';
+import { Toaster } from '~/components/ui/toaster';
+import { Header } from '~/components/layout/Header';
+import { MobileSidebar } from '~/components/layout/MobileSidebar';
+import { useTheme } from '~/hooks/use-theme';
+import { cn } from '~/lib/utils';
+import { getSession } from '~/utils/session.server';
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -27,15 +30,24 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
-  { rel: "stylesheet", href: stylesheet },
+  { rel: 'stylesheet', href: stylesheet }
 ];
 
+// loader関数を追加してセッションからログイン状態を取得
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get('Cookie'));
+  const isAuthenticated = !!session.get('userId'); // userId があればログイン状態とみなす
+  return { isAuthenticated };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useLoaderData<typeof loader>(); // loaderからデータを取得
   const matches = useMatches();
-  // ログインページまたはランディングページの場合にシンプルなレイアウトを適用
-  const isSimpleLayoutPage = matches.some(
-    (match) => match.id === "routes/login" || match.id === "routes/landing"
-  ); 
+
+  const isLoginPage = matches.some((match) => match.id === 'routes/login');
+  const isLandingPage = matches.some((match) => match.id === 'routes/landing');
+  const isSimpleLayoutPage = isLoginPage || (isLandingPage && !isAuthenticated);
+
   const { theme, toggleTheme } = useTheme();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -68,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           theme={theme}
           toggleTheme={toggleTheme}
           onOpenMobileSidebar={handleOpenMobileSidebar}
-          isLoginPage={isSimpleLayoutPage} 
+          isLoginPage={isSimpleLayoutPage}
         />
 
         {/* pt-16はヘッダーの高さ分 */}
