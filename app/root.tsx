@@ -32,7 +32,10 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const matches = useMatches();
-  const isLoginPage = matches.some((match) => match.id === "routes/login" || match.id === "routes/landing");
+  // ログインページまたはランディングページの場合にシンプルなレイアウトを適用
+  const isSimpleLayoutPage = matches.some(
+    (match) => match.id === "routes/login" || match.id === "routes/landing"
+  ); 
   const { theme, toggleTheme } = useTheme();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -60,26 +63,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased flex flex-col"
       )}>
-        {/* ヘッダー */}
+        {/* ヘッダーに isSimpleLayoutPage の値を isLoginPage プロパティとして渡す */}
         <Header
           theme={theme}
           toggleTheme={toggleTheme}
           onOpenMobileSidebar={handleOpenMobileSidebar}
+          isLoginPage={isSimpleLayoutPage} 
         />
 
         {/* pt-16はヘッダーの高さ分 */}
         <div className="flex flex-grow pt-16 justify-center">
-          {/* モバイル用サイドバー (ログインページ以外で表示) */}
-          {!isLoginPage && (
+          {/* モバイル用サイドバー (シンプルレイアウトページ以外で表示) */}
+          {!isSimpleLayoutPage && (
             <MobileSidebar
               isOpen={isMobileSidebarOpen}
               onClose={handleCloseMobileSidebar}
             />
           )}
 
-          {/* Main Content - flex flex-col justify-center を追加 */}
+          {/* Main Content - シンプルレイアウトページでは max-w-screen-2xl を削除 */}
           <main className={cn(
-            "flex flex-col justify-center flex-grow p-6 text-muted-foreground max-w-screen-2xl w-full mx-auto overflow-auto"
+            "flex flex-col justify-center flex-grow text-muted-foreground w-full mx-auto overflow-auto",
+            !isSimpleLayoutPage && "max-w-screen-2xl" // シンプルレイアウトページ以外では幅制限を適用
           )}>
             {children}
           </main>

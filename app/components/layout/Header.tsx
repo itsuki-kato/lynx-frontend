@@ -13,6 +13,7 @@ interface HeaderProps {
   theme: Theme;
   toggleTheme: () => void;
   onOpenMobileSidebar: () => void;
+  isLoginPage?: boolean; // isLoginPage プロパティを追加 (オプショナル)
 }
 
 /**
@@ -20,7 +21,7 @@ interface HeaderProps {
  * サイドバーのナビゲーションをヘッダーに統合
  * @param {HeaderProps} props - コンポーネントのプロパティ
  */
-export function Header({ theme, toggleTheme, onOpenMobileSidebar }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenMobileSidebar, isLoginPage }: HeaderProps) {
   const location = useLocation(); // 現在のパスを取得
 
   // ナビゲーションアイテムの定義
@@ -45,10 +46,11 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar }: HeaderProps)
             />
           </Link>
 
-          {/* デスクトップ用ナビゲーション (md以上で表示) */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
-              <NavLink
+          {/* デスクトップ用ナビゲーション (ログインページ以外で表示) */}
+          {!isLoginPage && (
+            <nav className="hidden md:flex items-center space-x-1">
+              {navItems.map((item) => (
+                <NavLink
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) => cn(
@@ -61,8 +63,9 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar }: HeaderProps)
                 <item.icon className="mr-2 h-4 w-4" />
                 {item.label}
               </NavLink>
-            ))}
-          </nav>
+              ))}
+            </nav>
+          )}
         </div>
 
         <div className="flex items-center space-x-4">
@@ -79,23 +82,26 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar }: HeaderProps)
             </IconContext.Provider>
           </Button>
 
-          {/* ログアウトボタン (デスクトップ表示) */}
-          <Form method="post" action="/logout" className="hidden md:block">
-            <Button
-              type="submit"
-              variant="ghost"
+          {/* ログアウトボタン (ログインページ以外で表示) */}
+          {!isLoginPage && (
+            <Form method="post" action="/logout" className="hidden md:block">
+              <Button
+                type="submit"
+                variant="ghost"
               size="sm"
               className="flex items-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
-          </Form>
+            </Form>
+          )}
 
-          {/* モバイル用ハンバーガーメニュー (md未満で表示) */}
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
+          {/* モバイル用ハンバーガーメニュー (ログインページ以外で表示) */}
+          {!isLoginPage && (
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
               size="icon"
               onClick={onOpenMobileSidebar}
               className="text-muted-foreground"
@@ -103,7 +109,8 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar }: HeaderProps)
             >
               <MdMenu size={24} />
             </Button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
