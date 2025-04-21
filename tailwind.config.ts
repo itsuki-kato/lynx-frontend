@@ -17,6 +17,9 @@ export default {
   				'Noto Color Emoji"'
   			]
   		},
+      backgroundImage: {
+        'login-bg': "url('/login.png')", // ログイン画面用の背景画像を追加
+      },
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
