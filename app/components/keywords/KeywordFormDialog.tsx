@@ -36,17 +36,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"; // Selectコンポーネントをインポート
-import { getKeywordDescendantIds } from "~/utils/keyword-utils"; // 子孫ID取得関数をインポート
+import { getKeywordDescendantIds } from "~/utils/keyword-utils"; // 子孫ID取得ユーティリティ関数
 
+/**
+ * KeywordFormDialog コンポーネントの Props 定義
+ */
 interface KeywordFormDialogProps {
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
   keyword: Keyword | null;
   projectId: number;
-  allKeywords: Keyword[]; // 親選択肢生成用に全キーワードリストを受け取る
+  /** 親キーワード選択肢生成用の全キーワードリストKK*/
+  allKeywords: Keyword[];
+  /** フォーム送信時のコールバック関数 */
   onSubmit: (data: CreateKeywordFormData | UpdateKeywordFormData, intent: "create" | "update", id?: number) => void;
 }
 
+/**
+ * キーワードの新規追加または編集を行うためのダイアログコンポーネント。
+ * react-hook-form と zod を使用してフォームのバリデーションと状態管理を行います。
+ * shadcn/ui の Dialog, Form, Input, Select, Textarea コンポーネントを使用します。
+ */
 export default function KeywordFormDialog({
   isOpen,
   setOpen,
@@ -54,14 +64,16 @@ export default function KeywordFormDialog({
   allKeywords, // props を受け取る
   onSubmit,
 }: KeywordFormDialogProps) {
+  // 編集中かどうかのフラグ (keyword prop が存在するかどうかで判定)
   const isEditing = !!keyword;
 
-  // isEditing に基づいて使用するスキーマを決定
+  // 編集モードか新規作成モードかに基づいて、使用する Zod バリデーションスキーマを動的に選択
   const currentSchema = useMemo(() => {
     return isEditing ? updateKeywordSchema : createKeywordSchema;
   }, [isEditing]);
 
-  // 編集中のキーワードとその子孫のIDリストを取得 (親選択肢から除外するため)
+  // 親キーワード選択肢から除外するIDのセットを計算 (編集中のキーワード自身とそのすべての子孫)
+  // これにより、キーワードを自身の親や子孫に設定することを防ぐ
   const excludedIds = useMemo(() => {
     if (isEditing && keyword) {
       return getKeywordDescendantIds(keyword.id, allKeywords);
@@ -69,32 +81,34 @@ export default function KeywordFormDialog({
     return new Set<number>();
   }, [isEditing, keyword, allKeywords]);
 
-  // 親キーワードの選択肢を生成
+  // 親キーワード選択用の <Select> コンポーネントの選択肢を生成
   const parentOptions = useMemo(() => {
-    // ルートレベル（親なし）の選択肢
+    // 最初に「なし (トップレベル)」の選択肢を追加
     const options = [{ value: "null", label: "なし (トップレベル)" }];
-    // 除外対象を除き、キーワード名でソートして選択肢に追加
+    // 全キーワードリストから除外対象を除外し、キーワード名でソート
     allKeywords
       .filter(k => !excludedIds.has(k.id)) // 自分自身と子孫を除外
-       .sort((a, b) => a.keywordName.localeCompare(b.keywordName))
-       .forEach(k => {
-         // 階層を視覚的に示すためにプレフィックスを追加
-         // levelに応じてプレフィックスを変更 (level 1 はプレフィックスなし)
-         const prefix = k.level && k.level > 1 ? `${'　'.repeat(k.level - 1)}└─ ` : ''; // 全角スペースでインデント
-         options.push({ value: String(k.id), label: `${prefix}${k.keywordName}` });
-       });
-     return options;
-   }, [allKeywords, excludedIds]);
+      .sort((a, b) => a.keywordName.localeCompare(b.keywordName)) // 名前順でソート
+      .forEach(k => {
+        // 階層を視覚的に示すためのインデント用プレフィックスを生成 (全角スペースと罫線)
+        const prefix = k.level && k.level > 1 ? `${'　'.repeat(k.level - 1)}└─ ` : '';
+        // 選択肢オブジェクトを作成して追加 (value は string 型)
+        options.push({ value: String(k.id), label: `${prefix}${k.keywordName}` });
+      });
+    return options;
+  }, [allKeywords, excludedIds]); // allKeywords または excludedIds が変更された場合に再計算
 
 
-  // フォームの型は作成・更新の両方を考慮したユニオン型にする
+  // react-hook-form の初期化
+  // 型引数には作成・更新の両方のフォームデータを許容するユニオン型を指定
   const form = useForm<CreateKeywordFormData | UpdateKeywordFormData>({
-    resolver: zodResolver(currentSchema),
+    resolver: zodResolver(currentSchema), // 動的に選択された Zod スキーマを resolver として使用
+    // フォームフィールドのデフォルト値
     defaultValues: {
       keywordName: "",
-      parentId: null, // 初期値は null
-      // level は削除
-      searchVolume: undefined,
+      parentId: null, // デフォルトはトップレベル (null)
+      // level はフォームで扱わない
+      searchVolume: undefined, // preprocess で undefined になるケースを考慮
       difficulty: null,
       relevance: null,
       searchIntent: null,
@@ -103,16 +117,17 @@ export default function KeywordFormDialog({
     },
   });
 
-  // 編集モードの場合、フォームに初期値を設定
-  // keyword の値は数値やnullだが、フォーム入力は文字列になる場合があるので注意
-  // preprocess があるため、そのまま渡しても Zod 側で処理されるはず
+  // ダイアログが開かれたとき、または編集対象 (keyword) が変更されたときにフォームの値をリセットする
+  // isEditing フラグに基づいて、編集モードか新規作成モードかで初期値を設定
   useEffect(() => {
     if (isEditing && keyword) {
+      // 編集モード: keyword データから値を取得してフォームをリセット
+      // Zod スキーマの preprocess があるため、API からの値をそのまま渡しても基本的にはOK
       form.reset({
         keywordName: keyword.keywordName ?? "",
-        parentId: keyword.parentId ?? null, // 直接 null または number をセット
-        // level は削除
-        searchVolume: keyword.searchVolume ?? undefined,
+        parentId: keyword.parentId ?? null, // API からの parentId (number | null) をそのままセット
+        // level はフォームにない
+        searchVolume: keyword.searchVolume ?? undefined, // API からの値 (number) or デフォルト undefined
         difficulty: keyword.difficulty ?? null,
         relevance: keyword.relevance ?? null,
         searchIntent: keyword.searchIntent ?? null,
@@ -120,11 +135,10 @@ export default function KeywordFormDialog({
         memo: keyword.memo ?? null,
       });
     } else {
-      // 新規作成モードの場合、デフォルト値でリセット
+      // 新規作成モード: デフォルト値でフォームをリセット
       form.reset({
         keywordName: "",
-        parentId: null, // デフォルトは null
-        // level は削除
+        parentId: null, // 新規作成時はデフォルトでトップレベル
         searchVolume: undefined,
         difficulty: null,
         relevance: null,
@@ -133,20 +147,28 @@ export default function KeywordFormDialog({
         memo: null,
       });
     }
-    // resolver を動的に変更した場合、フォームの状態もリセットする必要があるかもしれない
-    // form.trigger(); // 必要に応じてバリデーションを再トリガー
-  }, [isEditing, keyword, form]); // allKeywords は reset の依存関係には不要
+    // isEditing, keyword, または form インスタンス自体が変更された場合にこの effect を実行
+  }, [isEditing, keyword, form]);
 
-  // フォーム送信時の処理
-  const handleFormSubmit = (data: CreateKeywordFormData | UpdateKeywordFormData) => { // useForm の型に合わせる
+  /**
+   * フォーム送信時のハンドラ (react-hook-form の handleSubmit から呼び出される)
+   * バリデーション成功後、親コンポーネントから渡された onSubmit コールバックを呼び出す。
+   * @param data バリデーション済みフォームデータ (CreateKeywordFormData | UpdateKeywordFormData)
+   */
+  const handleFormSubmit = (data: CreateKeywordFormData | UpdateKeywordFormData) => {
+    // 操作の種類 (intent) を決定
     const intent = isEditing ? "update" : "create";
-    // data はスキーマでバリデーション・変換済み
+    // 親コンポーネント (KeywordsRoute) の handleFormSubmit を呼び出し、
+    // バリデーション・変換済みのデータ、intent、および編集中の場合は keyword ID を渡す
     onSubmit(data, intent, keyword?.id);
   };
 
+  // --- JSX Rendering ---
   return (
+    // ダイアログコンポーネント (shadcn/ui)
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[600px]">
+        {/* ダイアログヘッダー */}
         <DialogHeader>
           <DialogTitle>{isEditing ? "キーワード編集" : "新規キーワード追加"}</DialogTitle>
           <DialogDescription>
@@ -155,9 +177,11 @@ export default function KeywordFormDialog({
               : "新しいキーワードを登録します。"}
           </DialogDescription>
         </DialogHeader>
+        {/* react-hook-form の Form プロバイダー */}
         <Form {...form}>
+          {/* HTML の form 要素。onSubmit に react-hook-form の handleSubmit を接続 */}
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-4">
-            {/* キーワード名 */}
+            {/* キーワード名 フィールド (必須) */}
             <FormField
               control={form.control}
               name="keywordName"
@@ -172,8 +196,9 @@ export default function KeywordFormDialog({
               )}
             />
 
+            {/* 検索ボリュームと親キーワード (横並び) */}
             <div className="grid grid-cols-2 gap-4">
-              {/* 検索ボリューム */}
+              {/* 検索ボリューム フィールド */}
               <FormField
                 control={form.control}
                 name="searchVolume"
@@ -196,7 +221,7 @@ export default function KeywordFormDialog({
                 )}
               />
 
-              {/* 親キーワード選択 */}
+              {/* 親キーワード選択 フィールド (Select) */}
               <FormField
                 control={form.control}
                 name="parentId"
@@ -231,9 +256,9 @@ export default function KeywordFormDialog({
               />
             </div>
 
-
+            {/* 難易度と関連度 (横並び) */}
             <div className="grid grid-cols-2 gap-4">
-              {/* 難易度 */}
+              {/* 難易度 フィールド */}
               <FormField
                 control={form.control}
                 name="difficulty"
@@ -249,7 +274,7 @@ export default function KeywordFormDialog({
                 )}
               />
 
-              {/* 関連度 */}
+              {/* 関連度 フィールド */}
               <FormField
                 control={form.control}
                 name="relevance"
@@ -266,8 +291,9 @@ export default function KeywordFormDialog({
               />
             </div>
 
-             <div className="grid grid-cols-2 gap-4">
-               {/* 検索意図 */}
+            {/* 検索意図と重要度 (横並び) */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* 検索意図 フィールド */}
               <FormField
                 control={form.control}
                 name="searchIntent"
@@ -283,7 +309,7 @@ export default function KeywordFormDialog({
                 )}
               />
 
-              {/* 重要度 */}
+              {/* 重要度 フィールド */}
               <FormField
                 control={form.control}
                 name="importance"
@@ -300,26 +326,29 @@ export default function KeywordFormDialog({
               />
             </div>
 
-            {/* メモ */}
+            {/* メモ フィールド (Textarea) */}
             <FormField
               control={form.control}
               name="memo"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>メモ</FormLabel>
-                    <FormControl>
-                      {/* preprocessで処理するため、単純なTextareaで良い */}
-                      <Textarea placeholder="キーワードに関するメモを入力..." {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value)} />
-                    </FormControl>
-                    <FormMessage /> {/* エラーメッセージは Zod から */}
+                  <FormControl>
+                    {/* preprocessで処理するため、単純なTextareaで良い */}
+                    <Textarea placeholder="キーワードに関するメモを入力..." {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value)} />
+                  </FormControl>
+                  <FormMessage /> {/* エラーメッセージは Zod から */}
                 </FormItem>
               )}
             />
 
+            {/* ダイアログフッター: キャンセルボタンと送信ボタン */}
             <DialogFooter>
+              {/* キャンセルボタン */}
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 キャンセル
               </Button>
+              {/* 送信ボタン: isSubmitting 状態に応じて無効化 & ラベル変更 */}
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? "保存中..." : (isEditing ? "更新" : "作成")}
               </Button>

@@ -2,7 +2,7 @@ import type { Route } from "../+types/root";
 import { useLoaderData, useFetcher, Form, useRevalidator } from "react-router"; // useRevalidator を追加
 import { getSession } from "~/utils/session.server";
 import { requireAuth } from "~/utils/auth.server";
-import { useState, useEffect, useRef } from "react"; // useRef をインポート
+import { useState, useEffect, useRef, useCallback } from "react"; // useRef, useCallback をインポート
 import { useToast } from "~/hooks/use-toast";
 import type { Keyword, CreateKeywordData, UpdateKeywordData } from "~/types/keyword";
 import {
@@ -18,6 +18,9 @@ import KeywordTable from "~/components/keywords/KeywordTable";
 import KeywordFormDialog from "~/components/keywords/KeywordFormDialog";
 import { X } from "lucide-react";
 
+/**
+ * Remix の meta 関数: ページのメタ情報を定義します。
+ */
 export function meta({ }: Route.MetaArgs) {
   return [
     { title: "キーワード管理 | LYNX" },
@@ -26,6 +29,12 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 // --- Loader ---
+/**
+ * Remix の loader 関数: サーバーサイドでキーワード一覧データを取得します。
+ * API仕様書: GET /keywords
+ * @param request Remix の LoaderArgs オブジェクト
+ * @returns キーワード一覧、ユーザー情報、プロジェクトID、エラー情報を含むオブジェクト
+ */
 export const loader = async ({ request }: Route.LoaderArgs) => {
   await requireAuth(request);
   const session = await getSession(request.headers.get("Cookie"));
@@ -47,12 +56,39 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
       throw new Error(`API error: ${response.status} - ${errorBody}`);
     }
 
-    const keywords: Keyword[] = await response.json();
-    return { keywords, user, projectId, error: null }; // そのまま返す
+    const keywordsFromApi: Keyword[] = await response.json();
+
+    // --- 追加: キーワードデータをフラット化し、正しいレベルを計算する ---
+    const flattenKeywordsWithLevel = (keywords: Keyword[], level = 1): Keyword[] => {
+      let flatList: Keyword[] = [];
+      for (const keyword of keywords) {
+        // 現在のキーワードを正しいレベルで追加 (子キーワード情報は削除)
+        const { childKeywords, ...keywordWithoutChildren } = keyword;
+        flatList.push({ ...keywordWithoutChildren, level });
+        // 子キーワードが存在すれば、再帰的に処理して結果を結合
+        if (childKeywords && childKeywords.length > 0) {
+          flatList = flatList.concat(flattenKeywordsWithLevel(childKeywords, level + 1));
+        }
+      }
+      return flatList;
+    };
+    const flatKeywordsForSelect = flattenKeywordsWithLevel(keywordsFromApi);
+    // --- ここまで ---
+
+    // loader の戻り値に、元の階層データとフラット化されたデータを両方含める
+    return {
+      keywords: keywordsFromApi, // テーブル表示用の階層データ
+      flatKeywordsForSelect, // ダイアログ選択肢用のフラットデータ
+      user,
+      projectId,
+      error: null
+    };
   } catch (error) {
     console.error("API fetch error:", error);
+    // エラーが発生した場合でも、ページ描画に必要な最低限の情報を返す
     return {
       keywords: [],
+      flatKeywordsForSelect: [], // エラー時も空配列を返す
       user,
       projectId,
       error: error instanceof Error ? error.message : "キーワードデータの取得に失敗しました",
@@ -62,14 +98,14 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
 // --- Action Helpers ---
 
-// validateKeywordData 関数は不要になったため削除
-
 /**
- * API 呼び出しを抽象化するヘルパー関数
+ * API 呼び出しを抽象化する汎用ヘルパー関数。
+ * fetch を使用し、認証ヘッダーや Content-Type を設定します。
+ * エラーハンドリングも行い、結果を { ok: boolean, data?: any, error?: string } の形式で返します。
  * @param path API エンドポイントのパス (例: "/keywords")
  * @param method HTTP メソッド (例: "POST", "PATCH", "DELETE")
- * @param token 認証トークン
- * @param body リクエストボディ (JSON 化される)
+ * @param token 認証用 Bearer トークン
+ * @param body リクエストボディ (JSON.stringify される)
  * @returns API 呼び出し結果 { ok: boolean, data?: any, error?: string }
  */
 const callApi = async (path: string, method: string, token: string, body?: any) => {
@@ -108,8 +144,16 @@ const callApi = async (path: string, method: string, token: string, body?: any) 
 };
 
 // --- Action Handlers ---
+// Remix の action 関数内で呼び出される、各操作に対応するハンドラ関数群
 
-/** キーワード作成処理 */
+/**
+ * キーワード作成処理 (intent="create")
+ * FormData を受け取り、Zod スキーマでバリデーション後、POST /keywords API を呼び出します。
+ * @param formData フォームデータ
+ * @param token 認証トークン
+ * @param projectId プロジェクトID
+ * @returns 処理結果 { ok: boolean, message?: string, error?: string, errors?: Zod Field Errors }
+ */
 const handleCreateKeyword = async (formData: FormData, token: string, projectId: number) => {
   // FormData をプレーンオブジェクトに変換
   const rawData = Object.fromEntries(formData.entries());
@@ -135,7 +179,13 @@ const handleCreateKeyword = async (formData: FormData, token: string, projectId:
   return { ok: true, message: "キーワードを作成しました。" };
 };
 
-/** キーワード更新処理 */
+/**
+ * キーワード更新処理 (intent="update")
+ * FormData を受け取り、Zod スキーマでバリデーション後、PATCH /keywords/:id API を呼び出します。
+ * @param formData フォームデータ (id を含む)
+ * @param token 認証トークン
+ * @returns 処理結果 { ok: boolean, message?: string, error?: string, errors?: Zod Field Errors }
+ */
 const handleUpdateKeyword = async (formData: FormData, token: string) => {
   const keywordId = formData.get("id") as string;
   if (!keywordId) {
@@ -171,7 +221,13 @@ const handleUpdateKeyword = async (formData: FormData, token: string) => {
   return { ok: true, message: "キーワードを更新しました。" };
 };
 
-/** キーワード削除処理 */
+/**
+ * キーワード削除処理 (intent="delete")
+ * FormData から ID を取得し、DELETE /keywords/:id API を呼び出します。
+ * @param formData フォームデータ (id を含む)
+ * @param token 認証トークン
+ * @returns 処理結果 { ok: boolean, message?: string, error?: string }
+ */
 const handleDeleteKeyword = async (formData: FormData, token: string) => {
   const keywordId = formData.get("id") as string;
   if (!keywordId) {
@@ -188,6 +244,12 @@ const handleDeleteKeyword = async (formData: FormData, token: string) => {
 
 
 // --- Action ---
+/**
+ * Remix の action 関数: フォームからの POST リクエストを処理します。
+ * FormData の "intent" パラメータに基づき、対応するハンドラ関数 (作成/更新/削除) を呼び出します。
+ * @param request Remix の ActionArgs オブジェクト
+ * @returns 各ハンドラ関数からのレスポンス (JSON)
+ */
 export const action = async ({ request }: Route.ActionArgs) => {
   await requireAuth(request);
   const session = await getSession(request.headers.get("Cookie"));
@@ -216,41 +278,50 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 
 // --- Component ---
+/**
+ * キーワード管理ページのメインコンポーネント。
+ * loader からデータを取得し、キーワード一覧表示 (KeywordTable)、
+ * 検索フィルター、新規追加/編集/削除機能を提供します。
+ * KeywordFormDialog をモーダルとして表示・制御します。
+ */
 export default function KeywordsRoute() {
-  const { keywords, user, projectId, error: loaderError } = useLoaderData<typeof loader>();
+  // loader から階層データとフラットデータの両方を取得
+  const { keywords, flatKeywordsForSelect, user, projectId, error: loaderError } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const revalidator = useRevalidator();
-  const prevFetcherStateRef = useRef<typeof fetcher.state | undefined>(undefined); // 初期値 undefined を設定し、型に | undefined を追加
+  const prevFetcherStateRef = useRef<typeof fetcher.state | undefined>(undefined); // fetcher の前回の状態を保持する ref
 
-  // Loader エラー表示
+  // Loader エラー表示 (初回読み込み時)
   useEffect(() => {
     if (loaderError) {
       toast({ title: "データ読み込みエラー", description: loaderError, variant: "destructive" });
     }
   }, [loaderError, toast]);
 
-  // Action 結果表示 (fetcher経由) - 修正版: loading -> idle の遷移を検知
+  // Action (作成/更新/削除) の結果を fetcher 経由で監視し、トースト表示や状態更新を行う
   useEffect(() => {
-    // state が 'loading' から 'idle' に変化し、かつ data が存在する場合のみ処理
+    // fetcher の state が 'loading' から 'idle' に変化し、かつ fetcher.data (action の戻り値) が存在する場合に処理
     if (prevFetcherStateRef.current === "loading" && fetcher.state === "idle" && fetcher.data) {
       if (fetcher.data.ok) {
         toast({ title: "成功", description: fetcher.data.message });
         setIsFormOpen(false); // フォームを閉じる
         setEditingKeyword(null); // 編集状態をリセット
-        revalidator.revalidate(); // loaderを再実行して一覧を更新 (空のオプションを渡す)
+        revalidator.revalidate(); // データが変更された可能性があるので loader を再実行して一覧を更新
       } else {
+        // エラーの場合、エラーメッセージをトースト表示
         toast({ title: "エラー", description: fetcher.data.error || "操作に失敗しました", variant: "destructive" });
       }
     }
-    // 現在の state を ref に保存
+    // 現在の fetcher.state を ref に保存し、次回の比較に使用
     prevFetcherStateRef.current = fetcher.state;
   }, [fetcher.state, fetcher.data, toast, revalidator, setIsFormOpen, setEditingKeyword]);
 
-  // 検索フィルター (フラットなリストに対して実行)
+  // 検索フィルター: 入力された searchTerm に基づき、キーワード名またはメモで絞り込む
+  // 注意: APIレスポンスが階層構造でも、フィルターはフラットなリストに対して行う
   const flatFilteredKeywords = keywords.filter((keyword: Keyword) => {
     if (!searchTerm) return true; // 検索語がない場合はすべて表示
     const searchLower = searchTerm.toLowerCase();
@@ -261,35 +332,77 @@ export default function KeywordsRoute() {
     );
   });
 
-  // buildKeywordTree は不要になったため、フィルタリングされたフラットなリストをそのまま使用
-  // 注意: 検索で親が除外されると子も表示されなくなる点は KeywordTable 側で考慮される想定
-  const filteredKeywords = flatFilteredKeywords;
+  // 検索フィルター: 入力された searchTerm に基づき、キーワード名またはメモで絞り込む
+  // フィルター対象はフラット化されたリストを使用する方が効率的かもしれないが、
+  // テーブル表示は階層構造で行うため、元の階層データに対してフィルターを行う
+  // (子要素にマッチした場合に親も表示するなどの考慮が必要になる場合がある)
+  // 今回はシンプルに、フラットなリストでフィルターし、表示は階層データで行う
+  // TODO: 階層検索の実装 (親がマッチしたら子も表示、子がマッチしたら親も表示など)
+  const filterKeywords = useCallback((keywordsToFilter: Keyword[], term: string): Keyword[] => {
+    if (!term) return keywordsToFilter;
+    const lowerTerm = term.toLowerCase();
+    const filtered: Keyword[] = [];
+
+    const traverse = (keyword: Keyword): Keyword | null => {
+      const children = keyword.childKeywords?.map(traverse).filter(Boolean) as Keyword[] | undefined;
+      const isMatch = keyword.keywordName?.toLowerCase().includes(lowerTerm) ||
+        keyword.memo?.toLowerCase().includes(lowerTerm);
+
+      if (isMatch || (children && children.length > 0)) {
+        // 自身がマッチするか、子孫がマッチする場合に返す
+        return { ...keyword, childKeywords: children };
+      }
+      return null;
+    };
+
+    for (const keyword of keywordsToFilter) {
+      const result = traverse(keyword);
+      if (result) {
+        filtered.push(result);
+      }
+    }
+    return filtered;
+  }, []);
+
+  const filteredKeywords = filterKeywords(keywords, searchTerm); // 階層データに対してフィルター
+
+  // 検索結果件数表示用 (フラットリストで単純にカウント)
+  const flatFilteredKeywordsCount = flatKeywordsForSelect.filter((keyword: Keyword) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      keyword.keywordName?.toLowerCase().includes(searchLower) ||
+      keyword.memo?.toLowerCase().includes(searchLower)
+    );
+  }).length;
 
 
-  // 新規追加ボタンのハンドラ
+  /** 新規追加ボタンクリック時のハンドラ: フォームを新規モードで開く */
   const handleAddNew = () => {
     setEditingKeyword(null);
     setIsFormOpen(true);
   };
 
-  // 編集ボタンのハンドラ
+  /** 編集ボタンクリック時のハンドラ (KeywordTable から呼び出される): フォームを編集モードで開く */
   const handleEdit = (keyword: Keyword) => {
     setEditingKeyword(keyword);
     setIsFormOpen(true);
   };
 
-  // 削除ボタンのハンドラ
+  /** 削除ボタンクリック時のハンドラ (KeywordTable から呼び出される): 確認ダイアログ表示後、削除 action を実行 */
   const handleDelete = (keywordId: number) => {
     if (window.confirm(`ID: ${keywordId} のキーワードを本当に削除しますか？`)) {
       fetcher.submit({ intent: "delete", id: String(keywordId), projectId: String(projectId) }, { method: "post" });
     }
   };
 
-  // フォーム送信ハンドラ (KeywordFormDialog から呼び出される)
-  // data の型を CreateKeywordFormData | UpdateKeywordFormData に変更する必要があるが、
-  // KeywordFormDialog 側の修正も必要になるため、一旦 any で受けるか、
-  // Dialog 側で intent に応じて型を確定させる。
-  // ここでは一旦、呼び出し側の修正を前提として型を調整する。
+  /**
+   * フォーム送信ハンドラ (KeywordFormDialog から呼び出される)
+   * Zod でバリデーション済みのデータを受け取り、FormData を構築して fetcher.submit で action を実行する。
+   * @param data バリデーション済みフォームデータ (CreateKeywordFormData | UpdateKeywordFormData)
+   * @param intent 操作の種類 ("create" または "update")
+   * @param id キーワードID (更新時のみ)
+   */
   const handleFormSubmit = (data: CreateKeywordFormData | UpdateKeywordFormData, intent: "create" | "update", id?: number) => {
     const formData = new FormData();
     formData.append("intent", intent);
@@ -358,14 +471,14 @@ export default function KeywordsRoute() {
           </div>
         </div>
 
-        {/* 検索結果カウント (フィルタリング後のフラットな件数を表示) */}
+        {/* 検索結果カウント (フラットリストでの単純カウント) */}
         {searchTerm && (
           <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            検索結果: {flatFilteredKeywords.length} 件 (フィルタリングされたキーワード数)
+            検索結果: {flatFilteredKeywordsCount} 件 (キーワード名・メモでの一致数)
           </div>
         )}
 
-        {/* キーワード一覧テーブル (フィルタリングされたデータを渡す) */}
+        {/* キーワード一覧テーブル (フィルタリングされた階層データを渡す) */}
         <div className="mt-8">
           <KeywordTable
             keywords={filteredKeywords} // フィルタリングされたデータを渡す
@@ -380,7 +493,7 @@ export default function KeywordsRoute() {
           setOpen={setIsFormOpen}
           keyword={editingKeyword}
           projectId={projectId}
-          allKeywords={keywords} // 全キーワードリストを渡す
+          allKeywords={flatKeywordsForSelect} // フラット化されたキーワードリストを渡す
           onSubmit={handleFormSubmit}
         />
       </div>
