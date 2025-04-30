@@ -7,19 +7,19 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Inter"',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
-  				'Apple Color Emoji"',
-  				'Segoe UI Emoji"',
-  				'Segoe UI Symbol"',
-  				'Noto Color Emoji"'
+  				'Apple Color Emoji',
+  				'Segoe UI Emoji',
+  				'Segoe UI Symbol',
+  				'Noto Color Emoji'
   			]
   		},
-      backgroundImage: {
-        'login-bg': "url('/login.png')", // ログイン画面用の背景画像を追加
-      },
+  		backgroundImage: {
+  			'login-bg': 'url("/login.png")'
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

@@ -93,10 +93,30 @@
               "importance": "中",
               "memo": null,
               "createdAt": "2025-04-30T08:40:00.000Z",
-              "updatedAt": "2025-04-30T08:40:00.000Z"
+              "updatedAt": "2025-04-30T08:40:00.000Z",
+              "parentKeyword": null, // 追加: 親なし
+              "childKeywords": [ // 追加: 子キーワードの配列
+                { // 子キーワードの例
+                  "id": 2,
+                  "projectId": 1,
+                  "keywordName": "キーワード2",
+                  "parentId": 1,
+                  "level": 2,
+                  "searchVolume": 50,
+                  "difficulty": null,
+                  "relevance": null,
+                  "searchIntent": null,
+                  "importance": null,
+                  "memo": "子キーワード",
+                  "createdAt": "2025-04-30T08:41:00.000Z",
+                  "updatedAt": "2025-04-30T08:41:00.000Z",
+                  "parentKeyword": { /* 親(id:1)のDTOが入る想定だが例では省略 */ },
+                  "childKeywords": [] // この子には更に子がない想定
+                }
+              ]
             },
-            {
-              "id": 2,
+            { // 別のトップレベルキーワードの例
+              "id": 3,
               "projectId": 1,
               "keywordName": "キーワード2",
               "parentId": 1,
@@ -105,11 +125,14 @@
               "difficulty": null,
               "relevance": null,
               "searchIntent": null,
-              "importance": null,
-              "memo": "子キーワード",
-              "createdAt": "2025-04-30T08:41:00.000Z",
-              "updatedAt": "2025-04-30T08:41:00.000Z"
+              "importance": "高", // 例として適当な値
+              "memo": null,
+              "createdAt": "2025-04-30T09:00:00.000Z",
+              "updatedAt": "2025-04-30T09:00:00.000Z",
+              "parentKeyword": null, // 追加: 親なし
+              "childKeywords": [] // 追加: 子なし
             }
+            // ... 他のキーワードが続く可能性
           ]
           ```
     - **400 Bad Request:** `projectId` が指定されていない、または不正な形式
@@ -138,10 +161,24 @@
             "difficulty": "低",
             "relevance": "〇",
             "searchIntent": "Informational",
-            "importance": "中",
-            "memo": null,
-            "createdAt": "2025-04-30T08:40:00.000Z",
-            "updatedAt": "2025-04-30T08:40:00.000Z"
+              "importance": "中",
+              "memo": null,
+              "createdAt": "2025-04-30T08:40:00.000Z",
+              "updatedAt": "2025-04-30T08:40:00.000Z",
+              "parentKeyword": null, // 追加: 親なし
+              "childKeywords": [ // 追加: 子キーワードの配列 (例)
+                {
+                  "id": 2,
+                  "projectId": 1,
+                  "keywordName": "キーワード2",
+                  "parentId": 1,
+                  // ... 子キーワードの他のプロパティ ...
+                  "createdAt": "2025-04-30T08:41:00.000Z",
+                  "updatedAt": "2025-04-30T08:41:00.000Z",
+                  "parentKeyword": { /* 親(id:1)のDTOが入る想定だが例では省略 */ },
+                  "childKeywords": []
+                }
+              ]
           }
           ```
     - **400 Bad Request:** `id` が不正な形式
@@ -313,7 +350,10 @@ import { Keyword } from '@prisma/client';
 /**
  * キーワード情報のレスポンス DTO
  */
-export class KeywordResponseDto implements Keyword {
+export class KeywordResponseDto
+  implements
+    Omit<Keyword, 'parentKeyword' | 'childKeywords'> /* Prismaの型と一部異なるためOmit */
+{
   @ApiProperty({ description: 'キーワードID', example: 1 })
   id: number;
 
@@ -368,4 +408,19 @@ export class KeywordResponseDto implements Keyword {
 
   @ApiProperty({ description: '更新日時' })
   updatedAt: Date;
+
+  // --- 追加 ---
+  @ApiProperty({
+    description: '親キーワード情報 (KeywordResponseDto型)',
+    type: () => KeywordResponseDto, // 自己参照のため関数形式で指定
+    nullable: true,
+  })
+  parentKeyword: KeywordResponseDto | null;
+
+  @ApiProperty({
+    description: '子キーワード情報（直接の子のみ、KeywordResponseDto型の配列）',
+    type: [KeywordResponseDto], // 配列形式で指定
+  })
+  childKeywords: KeywordResponseDto[];
+  // --- ここまで ---
 }

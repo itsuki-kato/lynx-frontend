@@ -76,14 +76,15 @@ export default function KeywordFormDialog({
     // 除外対象を除き、キーワード名でソートして選択肢に追加
     allKeywords
       .filter(k => !excludedIds.has(k.id)) // 自分自身と子孫を除外
-      .sort((a, b) => a.keywordName.localeCompare(b.keywordName))
-      .forEach(k => {
-        // 階層を視覚的に示すためにインデントを追加
-        const indent = "・".repeat(k.level || 0); // level が null の場合は 0 扱い
-        options.push({ value: String(k.id), label: `${indent}${k.keywordName}` });
-      });
-    return options;
-  }, [allKeywords, excludedIds]);
+       .sort((a, b) => a.keywordName.localeCompare(b.keywordName))
+       .forEach(k => {
+         // 階層を視覚的に示すためにプレフィックスを追加
+         // levelに応じてプレフィックスを変更 (level 1 はプレフィックスなし)
+         const prefix = k.level && k.level > 1 ? `${'　'.repeat(k.level - 1)}└─ ` : ''; // 全角スペースでインデント
+         options.push({ value: String(k.id), label: `${prefix}${k.keywordName}` });
+       });
+     return options;
+   }, [allKeywords, excludedIds]);
 
 
   // フォームの型は作成・更新の両方を考慮したユニオン型にする

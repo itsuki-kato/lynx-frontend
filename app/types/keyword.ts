@@ -15,6 +15,13 @@ export interface Keyword {
   memo: string | null;
   createdAt: string; // Date型はJSONシリアライズでstringになるため
   updatedAt: string; // Date型はJSONシリアライズでstringになるため
+
+  // --- 追加: APIレスポンスに合わせて親子関係のプロパティを追加 ---
+  /** 親キーワード情報 (再帰的にKeyword型) */
+  parentKeyword?: Keyword | null;
+  /** 子キーワード情報 (再帰的にKeyword型) */
+  childKeywords?: Keyword[];
+  // --- ここまで ---
 }
 
 /**
