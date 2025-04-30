@@ -1,7 +1,7 @@
 import { NavLink, Form, useLocation } from "react-router"; // NavLinkとuseLocationをインポート
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { Home, Search, FileText, Settings, LogOut, Link2 } from 'lucide-react'; // Link2アイコンを追加
+import { Home, Search, FileText, Settings, LogOut, Link2, KeyRound } from 'lucide-react'; // KeyRoundアイコンを追加
 
 /**
  * デスクトップ用サイドバーナビゲーションコンポーネント
@@ -14,6 +14,7 @@ export function Sidebar() {
     { to: "/", label: "Dashboard", icon: Home },
     { to: "/scraping", label: "サイト分析", icon: Search },
     { to: "/content", label: "コンテンツ管理", icon: FileText },
+    { to: "/keywords", label: "キーワード管理", icon: KeyRound }, // キーワード管理を追加
     { to: "/internal-link-matrix", label: "内部リンクマトリクス", icon: Link2 }, // リンクアイコンに変更
     // { to: "/users", label: "Users", icon: Users }, // 必要に応じて追加
     // { to: "/reports", label: "Reports", icon: BarChart }, // 必要に応じて追加
