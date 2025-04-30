@@ -14,9 +14,10 @@ import {
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import KeywordTable from "~/components/keywords/KeywordTable"; // インポート
-import KeywordFormDialog from "~/components/keywords/KeywordFormDialog"; // インポート
-import { X } from "lucide-react"; // クリアボタン用アイコン
+import KeywordTable from "~/components/keywords/KeywordTable";
+import KeywordFormDialog from "~/components/keywords/KeywordFormDialog";
+import { X } from "lucide-react";
+import { buildKeywordTree } from "~/utils/keyword-utils"; // buildKeywordTree をインポート
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -122,7 +123,29 @@ const handleCreateKeyword = async (formData: FormData, token: string, projectId:
   }
 
   // バリデーション済みデータに projectId を追加
-  const dataToCreate: CreateKeywordData = { ...validation.data, projectId };
+  // バリデーション済みデータに projectId を追加
+  let dataToCreate: CreateKeywordData = { ...validation.data, projectId };
+
+  // parentId に基づいて level を計算
+  let level = 1; // デフォルトはトップレベル
+  if (dataToCreate.parentId) {
+    // 親キーワード情報を取得して level を決定
+    const parentApiResult = await callApi(`/keywords/${dataToCreate.parentId}`, "GET", token);
+    if (parentApiResult.ok && parentApiResult.data) {
+      const parentKeyword: Keyword = parentApiResult.data;
+      level = (parentKeyword.level ?? 0) + 1; // 親のレベル + 1
+    } else {
+      // 親の取得に失敗した場合のエラーハンドリング (例: デフォルトレベルにするか、エラーを返す)
+      console.error(`Failed to fetch parent keyword ${dataToCreate.parentId}:`, parentApiResult.error);
+      // ここではエラーを返さず、デフォルトの level 1 で作成を試みるか、エラーを返すか選択
+      // return { ok: false, error: `親キーワード(ID: ${dataToCreate.parentId})の取得に失敗しました。` };
+      // 今回は level 1 で作成を続行する（要件に応じて変更）
+      level = 1; // 親が見つからない場合はトップレベル扱いにする（暫定）
+      dataToCreate.parentId = null; // 親IDもnullにする
+    }
+  }
+  dataToCreate.level = level; // 計算した level を追加
+
   const apiResult = await callApi("/keywords", "POST", token, dataToCreate);
 
   if (!apiResult.ok) {
@@ -148,7 +171,27 @@ const handleUpdateKeyword = async (formData: FormData, token: string) => {
     return { ok: false, error: "入力内容が無効です。", errors: validation.error.flatten().fieldErrors };
   }
 
-  const dataToUpdate: UpdateKeywordData = validation.data;
+  let dataToUpdate: UpdateKeywordData = validation.data;
+
+  // parentId が更新対象に含まれている場合、level も再計算する
+  if (dataToUpdate.hasOwnProperty('parentId')) {
+    let level = 1;
+    if (dataToUpdate.parentId) {
+      const parentApiResult = await callApi(`/keywords/${dataToUpdate.parentId}`, "GET", token);
+      if (parentApiResult.ok && parentApiResult.data) {
+        const parentKeyword: Keyword = parentApiResult.data;
+        level = (parentKeyword.level ?? 0) + 1;
+      } else {
+        console.error(`Failed to fetch parent keyword ${dataToUpdate.parentId}:`, parentApiResult.error);
+        // return { ok: false, error: `親キーワード(ID: ${dataToUpdate.parentId})の取得に失敗しました。` };
+        level = 1; // 親が見つからない場合はトップレベル扱い（暫定）
+        dataToUpdate.parentId = null; // 親IDもnullにする
+      }
+    }
+    dataToUpdate.level = level; // 計算した level を追加
+  }
+  // parentId が更新対象でない場合、level は変更しない (API側で処理される想定 or level単独更新は不可とする)
+
   // 更新するデータがない場合は成功として扱う（API負荷軽減）
   // スキーマが optional なので、空オブジェクトはバリデーションを通過する
   if (Object.keys(dataToUpdate).length === 0) {
@@ -242,14 +285,22 @@ export default function KeywordsRoute() {
     prevFetcherStateRef.current = fetcher.state;
   }, [fetcher.state, fetcher.data, toast, revalidator, setIsFormOpen, setEditingKeyword]);
 
-  // 検索フィルター
-  const filteredKeywords = keywords.filter((keyword: Keyword) => {
+  // 検索フィルター (フラットなリストに対して実行)
+  const flatFilteredKeywords = keywords.filter((keyword: Keyword) => {
+    if (!searchTerm) return true; // 検索語がない場合はすべて表示
     const searchLower = searchTerm.toLowerCase();
+    // キーワード名またはメモに検索語が含まれるかチェック
     return (
       keyword.keywordName?.toLowerCase().includes(searchLower) ||
       keyword.memo?.toLowerCase().includes(searchLower)
     );
   });
+
+  // フィルタリングされたフラットなリストから階層ツリーを構築
+  // 注意: この方法だと、親がフィルタリングで除外された場合、その子も表示されなくなります。
+  //       検索結果を階層的に表示したい場合は、より複雑なフィルタリングロジックが必要です。
+  const hierarchicalKeywords = buildKeywordTree(flatFilteredKeywords);
+
 
   // 新規追加ボタンのハンドラ
   const handleAddNew = () => {
@@ -343,17 +394,17 @@ export default function KeywordsRoute() {
           </div>
         </div>
 
-        {/* 検索結果カウント */}
+        {/* 検索結果カウント (フィルタリング後のフラットな件数を表示) */}
         {searchTerm && (
           <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            検索結果: {filteredKeywords.length} 件
+            検索結果: {flatFilteredKeywords.length} 件 (フィルタリングされたキーワード数)
           </div>
         )}
 
-        {/* キーワード一覧テーブル */}
-        <div className="mt-8"> {/* Removed border and overflow-hidden from here */}
+        {/* キーワード一覧テーブル (階層化されたデータを渡す) */}
+        <div className="mt-8">
           <KeywordTable
-            keywords={filteredKeywords}
+            keywords={hierarchicalKeywords} // 階層データを渡す
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -365,7 +416,8 @@ export default function KeywordsRoute() {
           setOpen={setIsFormOpen}
           keyword={editingKeyword}
           projectId={projectId}
-          onSubmit={handleFormSubmit} // フォーム送信ハンドラを渡す
+          allKeywords={keywords} // 全キーワードリストを渡す
+          onSubmit={handleFormSubmit}
         />
       </div>
     </div>

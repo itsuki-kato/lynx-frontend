@@ -115,7 +115,40 @@
     - **400 Bad Request:** `projectId` が指定されていない、または不正な形式
     - **401 Unauthorized:** 認証トークンが無効または不足
 
-### 3. キーワード更新
+### 3. キーワード単体取得 (ID指定)
+
+- **Method:** `GET`
+- **Path:** `/keywords/:id`
+- **概要:** 指定されたIDのキーワード情報を1件取得します。
+- **認証:** 必要 (Bearer Token)
+- **パスパラメータ:**
+    - `id` (number, **required**): 取得対象のキーワードID
+- **レスポンス:**
+    - **200 OK:** キーワード取得成功
+        - Content-Type: `application/json`
+        - Schema: `KeywordResponseDto`
+          ```json
+          {
+            "id": 1,
+            "projectId": 1,
+            "keywordName": "キーワード1",
+            "parentId": null,
+            "level": 1,
+            "searchVolume": 100,
+            "difficulty": "低",
+            "relevance": "〇",
+            "searchIntent": "Informational",
+            "importance": "中",
+            "memo": null,
+            "createdAt": "2025-04-30T08:40:00.000Z",
+            "updatedAt": "2025-04-30T08:40:00.000Z"
+          }
+          ```
+    - **400 Bad Request:** `id` が不正な形式
+    - **401 Unauthorized:** 認証トークンが無効または不足
+    - **404 Not Found:** 指定されたIDのキーワードが存在しない
+
+### 4. キーワード更新
 
 - **Method:** `PATCH`
 - **Path:** `/keywords/:id`
@@ -140,7 +173,7 @@
     - **401 Unauthorized:** 認証トークンが無効または不足
     - **404 Not Found:** 指定されたIDのキーワードが存在しない
 
-### 4. キーワード削除
+### 5. キーワード削除
 
 - **Method:** `DELETE`
 - **Path:** `/keywords/:id`

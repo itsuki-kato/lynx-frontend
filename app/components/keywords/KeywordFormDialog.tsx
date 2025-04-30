@@ -28,21 +28,30 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "~/components/ui/form"; // shadcn/uiのFormコンポーネントをインポート
+} from "~/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select"; // Selectコンポーネントをインポート
+import { getKeywordDescendantIds } from "~/utils/keyword-utils"; // 子孫ID取得関数をインポート
 
 interface KeywordFormDialogProps {
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
-  keyword: Keyword | null; // 編集対象のキーワード (nullの場合は新規作成)
-  projectId: number; // プロジェクトID (現在は未使用だが将来的に使う可能性あり)
-  onSubmit: (data: CreateKeywordFormData | UpdateKeywordFormData, intent: "create" | "update", id?: number) => void; // 型を更新
-  // TODO: 親キーワード選択用のデータとコンポーネントが必要
+  keyword: Keyword | null;
+  projectId: number;
+  allKeywords: Keyword[]; // 親選択肢生成用に全キーワードリストを受け取る
+  onSubmit: (data: CreateKeywordFormData | UpdateKeywordFormData, intent: "create" | "update", id?: number) => void;
 }
 
 export default function KeywordFormDialog({
   isOpen,
   setOpen,
   keyword,
+  allKeywords, // props を受け取る
   onSubmit,
 }: KeywordFormDialogProps) {
   const isEditing = !!keyword;
@@ -52,20 +61,44 @@ export default function KeywordFormDialog({
     return isEditing ? updateKeywordSchema : createKeywordSchema;
   }, [isEditing]);
 
+  // 編集中のキーワードとその子孫のIDリストを取得 (親選択肢から除外するため)
+  const excludedIds = useMemo(() => {
+    if (isEditing && keyword) {
+      return getKeywordDescendantIds(keyword.id, allKeywords);
+    }
+    return new Set<number>();
+  }, [isEditing, keyword, allKeywords]);
+
+  // 親キーワードの選択肢を生成
+  const parentOptions = useMemo(() => {
+    // ルートレベル（親なし）の選択肢
+    const options = [{ value: "null", label: "なし (トップレベル)" }];
+    // 除外対象を除き、キーワード名でソートして選択肢に追加
+    allKeywords
+      .filter(k => !excludedIds.has(k.id)) // 自分自身と子孫を除外
+      .sort((a, b) => a.keywordName.localeCompare(b.keywordName))
+      .forEach(k => {
+        // 階層を視覚的に示すためにインデントを追加
+        const indent = "・".repeat(k.level || 0); // level が null の場合は 0 扱い
+        options.push({ value: String(k.id), label: `${indent}${k.keywordName}` });
+      });
+    return options;
+  }, [allKeywords, excludedIds]);
+
+
   // フォームの型は作成・更新の両方を考慮したユニオン型にする
   const form = useForm<CreateKeywordFormData | UpdateKeywordFormData>({
-    resolver: zodResolver(currentSchema), // 動的にスキーマを適用
-    // defaultValues は CreateKeywordFormData に合わせておく (Update は optional なので問題ないはず)
+    resolver: zodResolver(currentSchema),
     defaultValues: {
-      keywordName: "", // Create では必須
-      parentId: null, // preprocess で処理されるので null でOK
-      level: undefined, // preprocess で処理されるので undefined or 空文字
-      searchVolume: undefined, // preprocess で処理されるので undefined or 空文字
-      difficulty: null, // preprocess で処理されるので null or 空文字
-      relevance: null, // preprocess で処理されるので null or 空文字
-      searchIntent: null, // preprocess で処理されるので null or 空文字
-      importance: null, // preprocess で処理されるので null or 空文字
-      memo: null, // preprocess で処理されるので null or 空文字
+      keywordName: "",
+      parentId: null, // 初期値は null
+      // level は削除
+      searchVolume: undefined,
+      difficulty: null,
+      relevance: null,
+      searchIntent: null,
+      importance: null,
+      memo: null,
     },
   });
 
@@ -76,8 +109,8 @@ export default function KeywordFormDialog({
     if (isEditing && keyword) {
       form.reset({
         keywordName: keyword.keywordName ?? "",
-        parentId: keyword.parentId ?? null,
-        level: keyword.level ?? undefined,
+        parentId: keyword.parentId ?? null, // 直接 null または number をセット
+        // level は削除
         searchVolume: keyword.searchVolume ?? undefined,
         difficulty: keyword.difficulty ?? null,
         relevance: keyword.relevance ?? null,
@@ -89,8 +122,8 @@ export default function KeywordFormDialog({
       // 新規作成モードの場合、デフォルト値でリセット
       form.reset({
         keywordName: "",
-        parentId: null,
-        level: undefined,
+        parentId: null, // デフォルトは null
+        // level は削除
         searchVolume: undefined,
         difficulty: null,
         relevance: null,
@@ -101,7 +134,7 @@ export default function KeywordFormDialog({
     }
     // resolver を動的に変更した場合、フォームの状態もリセットする必要があるかもしれない
     // form.trigger(); // 必要に応じてバリデーションを再トリガー
-  }, [isEditing, keyword, form]);
+  }, [isEditing, keyword, form]); // allKeywords は reset の依存関係には不要
 
   // フォーム送信時の処理
   const handleFormSubmit = (data: CreateKeywordFormData | UpdateKeywordFormData) => { // useForm の型に合わせる
@@ -157,34 +190,46 @@ export default function KeywordFormDialog({
                         onChange={e => field.onChange(e.target.value)} // そのまま文字列を渡す
                       />
                     </FormControl>
-                    <FormMessage /> {/* エラーメッセージは Zod から */}
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* 階層レベル */}
+              {/* 親キーワード選択 */}
               <FormField
                 control={form.control}
-                name="level"
+                name="parentId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>階層レベル</FormLabel>
-                    <FormControl>
-                      {/* preprocessで処理するため、単純なInputで良い */}
-                       <Input
-                        type="number"
-                        min="1" // HTML5のバリデーションも一応残す
-                        placeholder="例: 1"
-                        {...field}
-                        value={field.value === undefined || field.value === null ? '' : String(field.value)}
-                        onChange={e => field.onChange(e.target.value)} // そのまま文字列を渡す
-                      />
-                    </FormControl>
-                    <FormMessage /> {/* エラーメッセージは Zod から */}
+                    <FormLabel>親キーワード</FormLabel>
+                    <Select
+                      // Select の value は string である必要がある
+                      // field.value (number | null) を適切に string に変換
+                      value={field.value === null ? "null" : String(field.value)}
+                      onValueChange={(value: string) => { // value の型を string に指定
+                        // "null" 文字列が選択されたら null を、それ以外は数値に変換してセット
+                        field.onChange(value === "null" ? null : Number(value));
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="親キーワードを選択..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {parentOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
 
             <div className="grid grid-cols-2 gap-4">
               {/* 難易度 */}
@@ -248,28 +293,11 @@ export default function KeywordFormDialog({
                       {/* preprocessで処理するため、単純なInputで良い */}
                       <Input placeholder="例: 高" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value)} />
                     </FormControl>
-                    <FormMessage /> {/* エラーメッセージは Zod から */}
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            {/* TODO: 親キーワード選択 (Selectコンポーネントなどを使用) */}
-            {/*
-            <FormField
-              control={form.control}
-              name="parentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>親キーワード</FormLabel>
-                  <FormControl>
-                     <Input type="number" placeholder="親キーワードID (任意)" {...field} value={field.value ?? ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            */}
 
             {/* メモ */}
             <FormField

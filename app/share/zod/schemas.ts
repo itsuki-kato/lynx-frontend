@@ -44,9 +44,7 @@ export const createKeywordSchema = z.object({
   parentId: z.preprocess(preprocessStringToPositiveNumberOrNull,
     z.number().int().positive("親IDは正の整数である必要があります").nullable().optional()
   ),
-  level: z.preprocess(preprocessStringToNumberOrUndefined,
-    z.number().int().min(1, "階層レベルは1以上である必要があります").optional()
-  ),
+  // level は削除 (サーバーサイドで計算)
   searchVolume: z.preprocess(preprocessStringToNumberOrUndefined,
     z.number().int().min(0, "検索ボリュームは0以上である必要があります").optional()
   ),
@@ -74,9 +72,7 @@ export const updateKeywordSchema = z.object({
   parentId: z.preprocess(preprocessStringToPositiveNumberOrNull,
     z.number().int().positive("親IDは正の整数である必要があります").nullable().optional()
   ),
-  level: z.preprocess(preprocessStringToNumberOrUndefined,
-    z.number().int().min(1, "階層レベルは1以上である必要があります").optional()
-  ),
+  // level は削除 (サーバーサイドで計算)
   searchVolume: z.preprocess(preprocessStringToNumberOrUndefined,
     z.number().int().min(0, "検索ボリュームは0以上である必要があります").optional()
   ),
