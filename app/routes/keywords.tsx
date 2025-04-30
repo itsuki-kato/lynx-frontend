@@ -2,7 +2,7 @@ import type { Route } from "../+types/root";
 import { useLoaderData, useFetcher, Form, useRevalidator } from "react-router"; // useRevalidator を追加
 import { getSession } from "~/utils/session.server";
 import { requireAuth } from "~/utils/auth.server";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // useRef をインポート
 import { useToast } from "~/hooks/use-toast";
 import type { Keyword, CreateKeywordData, UpdateKeywordData } from "~/types/keyword";
 import { keywordSchema, type KeywordFormData } from "~/share/zod/schemas"; // KeywordFormData をインポート
@@ -151,9 +151,10 @@ export default function KeywordsRoute() {
   const fetcher = useFetcher<typeof action>();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false); // 状態管理を追加
-  const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null); // 状態管理を追加
-  const revalidator = useRevalidator(); // 再検証用フックを追加
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
+  const revalidator = useRevalidator();
+  const prevFetcherStateRef = useRef<typeof fetcher.state | undefined>(undefined); // 初期値 undefined を設定し、型に | undefined を追加
 
   // Loader エラー表示
   useEffect(() => {
@@ -162,19 +163,22 @@ export default function KeywordsRoute() {
     }
   }, [loaderError, toast]);
 
-  // Action 結果表示 (fetcher経由)
+  // Action 結果表示 (fetcher経由) - 修正版: loading -> idle の遷移を検知
   useEffect(() => {
-    if (fetcher.data && fetcher.state === "idle") {
+    // state が 'loading' から 'idle' に変化し、かつ data が存在する場合のみ処理
+    if (prevFetcherStateRef.current === "loading" && fetcher.state === "idle" && fetcher.data) {
       if (fetcher.data.ok) {
         toast({ title: "成功", description: fetcher.data.message });
         setIsFormOpen(false); // フォームを閉じる
         setEditingKeyword(null); // 編集状態をリセット
-        revalidator.revalidate(); // loaderを再実行して一覧を更新
+        revalidator.revalidate(); // loaderを再実行して一覧を更新 (空のオプションを渡す)
       } else {
         toast({ title: "エラー", description: fetcher.data.error || "操作に失敗しました", variant: "destructive" });
       }
     }
-  }, [fetcher.data, fetcher.state, toast, revalidator]);
+    // 現在の state を ref に保存
+    prevFetcherStateRef.current = fetcher.state;
+  }, [fetcher.state, fetcher.data, toast, revalidator, setIsFormOpen, setEditingKeyword]);
 
   // 検索フィルター
   const filteredKeywords = keywords.filter((keyword: Keyword) => {
