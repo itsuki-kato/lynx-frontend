@@ -48,13 +48,6 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     }
 
     const keywords: Keyword[] = await response.json();
-    // createdAt と updatedAt を Date オブジェクトに変換 (必要であれば)
-    // const keywordsWithDate = keywords.map(k => ({
-    //   ...k,
-    //   createdAt: new Date(k.createdAt),
-    //   updatedAt: new Date(k.updatedAt),
-    // }));
-    // return { keywords: keywordsWithDate, user, projectId, error: null };
     return { keywords, user, projectId, error: null }; // そのまま返す
   } catch (error) {
     console.error("API fetch error:", error);
