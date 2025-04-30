@@ -11,20 +11,93 @@ export const scrapyRequestSchema = z.object({
 
 export type ScrapyRequest = z.infer<typeof scrapyRequestSchema>;
 
-// キーワード作成・更新フォームのバリデーションスキーマ
-export const keywordSchema = z.object({
-  // id は更新時に必要だが、フォームには含めないことが多いのでここでは定義しない
-  // projectId は loader などから取得して action で付与するため、フォームには含めない
+
+// --- Keyword Schemas ---
+
+// 共通の preprocess ロジック
+const preprocessStringToPositiveNumberOrNull = (val: unknown): number | null => {
+  if (val === '' || val === 'null' || val === null || val === undefined || val === 0 || val === '0') {
+    return null;
+  }
+  const num = Number(val);
+  return isNaN(num) || num <= 0 ? null : Math.floor(num); // 整数化も考慮
+};
+
+const preprocessStringToNumberOrUndefined = (val: unknown): number | undefined => {
+  if (val === '' || val === null || val === undefined) {
+    return undefined;
+  }
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+};
+
+const preprocessStringToNullableString = (val: unknown): string | null => {
+  if (val === '' || val === null || val === undefined) {
+    return null;
+  }
+  return String(val);
+};
+
+// Keyword 作成用スキーマ (FormDataからの変換を考慮)
+export const createKeywordSchema = z.object({
   keywordName: z.string().min(1, "キーワード名は必須です"),
-  parentId: z.number().int().positive().nullable().optional(), // 親IDは正の整数かnull
-  level: z.number().int().min(1, "階層レベルは1以上である必要があります").optional().default(1),
-  searchVolume: z.number().int().min(0, "検索ボリュームは0以上である必要があります").optional().default(0),
-  difficulty: z.string().nullable().optional(),
-  relevance: z.string().nullable().optional(),
-  searchIntent: z.string().nullable().optional(),
-  importance: z.string().nullable().optional(),
-  memo: z.string().nullable().optional(),
+  parentId: z.preprocess(preprocessStringToPositiveNumberOrNull,
+    z.number().int().positive("親IDは正の整数である必要があります").nullable().optional()
+  ),
+  level: z.preprocess(preprocessStringToNumberOrUndefined,
+    z.number().int().min(1, "階層レベルは1以上である必要があります").optional()
+  ),
+  searchVolume: z.preprocess(preprocessStringToNumberOrUndefined,
+    z.number().int().min(0, "検索ボリュームは0以上である必要があります").optional()
+  ),
+  difficulty: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  relevance: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  searchIntent: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  importance: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  memo: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  // projectId は action で付与するため、ここには含めない
 });
 
-// フォームで使用する型 (id と projectId を除く)
-export type KeywordFormData = z.infer<typeof keywordSchema>;
+// Keyword 更新用スキーマ (FormDataからの変換を考慮, 全てオプショナル)
+export const updateKeywordSchema = z.object({
+  keywordName: z.string().min(1, "キーワード名は必須です").optional(),
+  parentId: z.preprocess(preprocessStringToPositiveNumberOrNull,
+    z.number().int().positive("親IDは正の整数である必要があります").nullable().optional()
+  ),
+  level: z.preprocess(preprocessStringToNumberOrUndefined,
+    z.number().int().min(1, "階層レベルは1以上である必要があります").optional()
+  ),
+  searchVolume: z.preprocess(preprocessStringToNumberOrUndefined,
+    z.number().int().min(0, "検索ボリュームは0以上である必要があります").optional()
+  ),
+  difficulty: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  relevance: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  searchIntent: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  importance: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  memo: z.preprocess(preprocessStringToNullableString,
+    z.string().nullable().optional()
+  ),
+  // id, projectId は action で別途扱う
+});
+
+// フォームデータ用の型定義 (推論させる)
+export type CreateKeywordFormData = z.infer<typeof createKeywordSchema>;
+export type UpdateKeywordFormData = z.infer<typeof updateKeywordSchema>;

@@ -5,7 +5,12 @@ import { requireAuth } from "~/utils/auth.server";
 import { useState, useEffect, useRef } from "react"; // useRef をインポート
 import { useToast } from "~/hooks/use-toast";
 import type { Keyword, CreateKeywordData, UpdateKeywordData } from "~/types/keyword";
-import { keywordSchema, type KeywordFormData } from "~/share/zod/schemas"; // KeywordFormData をインポート
+import {
+  createKeywordSchema,
+  updateKeywordSchema,
+  type CreateKeywordFormData, // 新しい型をインポート
+  type UpdateKeywordFormData, // 新しい型をインポート
+} from "~/share/zod/schemas";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -62,6 +67,125 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   }
 };
 
+// --- Action Helpers ---
+
+// validateKeywordData 関数は不要になったため削除
+
+/**
+ * API 呼び出しを抽象化するヘルパー関数
+ * @param path API エンドポイントのパス (例: "/keywords")
+ * @param method HTTP メソッド (例: "POST", "PATCH", "DELETE")
+ * @param token 認証トークン
+ * @param body リクエストボディ (JSON 化される)
+ * @returns API 呼び出し結果 { ok: boolean, data?: any, error?: string }
+ */
+const callApi = async (path: string, method: string, token: string, body?: any) => {
+  const url = `${import.meta.env.VITE_API_BASE_URL}${path}`;
+  const options: RequestInit = {
+    method,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      let errorBody = `${method} ${path} failed`;
+      try {
+        errorBody = await response.text();
+      } catch { /* ignore */ }
+      console.error(`API error (${response.status}) on ${method} ${path}:`, errorBody);
+      return { ok: false, error: `APIエラー (${response.status}): ${errorBody}` };
+    }
+    // DELETE など、ボディがない成功レスポンスの場合もある
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return { ok: true, data: null }; // ボディなし成功
+    }
+    const data = await response.json();
+    return { ok: true, data };
+  } catch (error) {
+    console.error(`Network or other error on ${method} ${path}:`, error);
+    return { ok: false, error: error instanceof Error ? error.message : "ネットワークエラーまたは不明なエラー" };
+  }
+};
+
+// --- Action Handlers ---
+
+/** キーワード作成処理 */
+const handleCreateKeyword = async (formData: FormData, token: string, projectId: number) => {
+  // FormData をプレーンオブジェクトに変換
+  const rawData = Object.fromEntries(formData.entries());
+  // createKeywordSchema で直接バリデーション
+  const validation = createKeywordSchema.safeParse(rawData);
+
+  if (!validation.success) {
+    console.error("Validation errors (create):", validation.error.flatten().fieldErrors);
+    return { ok: false, error: "入力内容が無効です。", errors: validation.error.flatten().fieldErrors };
+  }
+
+  // バリデーション済みデータに projectId を追加
+  const dataToCreate: CreateKeywordData = { ...validation.data, projectId };
+  const apiResult = await callApi("/keywords", "POST", token, dataToCreate);
+
+  if (!apiResult.ok) {
+    return { ok: false, error: apiResult.error || "キーワードの作成に失敗しました。" };
+  }
+  return { ok: true, message: "キーワードを作成しました。" };
+};
+
+/** キーワード更新処理 */
+const handleUpdateKeyword = async (formData: FormData, token: string) => {
+  const keywordId = formData.get("id") as string;
+  if (!keywordId) {
+    return { ok: false, error: "キーワードIDが必要です。" };
+  }
+
+  // FormData をプレーンオブジェクトに変換
+  const rawData = Object.fromEntries(formData.entries());
+  // updateKeywordSchema で直接バリデーション
+  const validation = updateKeywordSchema.safeParse(rawData);
+
+  if (!validation.success) {
+    console.error("Validation errors (update):", validation.error.flatten().fieldErrors);
+    return { ok: false, error: "入力内容が無効です。", errors: validation.error.flatten().fieldErrors };
+  }
+
+  const dataToUpdate: UpdateKeywordData = validation.data;
+  // 更新するデータがない場合は成功として扱う（API負荷軽減）
+  // スキーマが optional なので、空オブジェクトはバリデーションを通過する
+  if (Object.keys(dataToUpdate).length === 0) {
+    return { ok: true, message: "更新する内容がありません。" };
+  }
+
+  const apiResult = await callApi(`/keywords/${keywordId}`, "PATCH", token, dataToUpdate);
+
+  if (!apiResult.ok) {
+    return { ok: false, error: apiResult.error || "キーワードの更新に失敗しました。" };
+  }
+  return { ok: true, message: "キーワードを更新しました。" };
+};
+
+/** キーワード削除処理 */
+const handleDeleteKeyword = async (formData: FormData, token: string) => {
+  const keywordId = formData.get("id") as string;
+  if (!keywordId) {
+    return { ok: false, error: "キーワードIDが必要です。" };
+  }
+
+  const apiResult = await callApi(`/keywords/${keywordId}`, "DELETE", token);
+
+  if (!apiResult.ok) {
+    return { ok: false, error: apiResult.error || "キーワードの削除に失敗しました。" };
+  }
+  return { ok: true, message: "キーワードを削除しました。" };
+};
+
+
 // --- Action ---
 export const action = async ({ request }: Route.ActionArgs) => {
   await requireAuth(request);
@@ -69,81 +193,26 @@ export const action = async ({ request }: Route.ActionArgs) => {
   const token = session.get("token");
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const projectId = Number(formData.get("projectId") || 1);
+  const projectId = Number(formData.get("projectId") || 1); // projectId を取得
 
   try {
     switch (intent) {
-      case "create": {
-        const dataForValidation = {
-          keywordName: formData.get("keywordName") as string ?? "",
-          parentId: formData.get("parentId") ? Number(formData.get("parentId")) : null,
-          level: formData.get("level") ? Number(formData.get("level")) : undefined,
-          searchVolume: formData.get("searchVolume") ? Number(formData.get("searchVolume")) : undefined,
-          difficulty: formData.get("difficulty") as string || null,
-          relevance: formData.get("relevance") as string || null,
-          searchIntent: formData.get("searchIntent") as string || null,
-          importance: formData.get("importance") as string || null,
-          memo: formData.get("memo") as string || null,
-        };
-        if (dataForValidation.parentId === 0) dataForValidation.parentId = null;
-
-        const validationResult = keywordSchema.safeParse(dataForValidation);
-        if (!validationResult.success) {
-          console.error("Validation errors (create):", validationResult.error.flatten().fieldErrors);
-          return { ok: false, error: "入力内容が無効です。", errors: validationResult.error.flatten().fieldErrors };
-        }
-
-        const dataToCreate: CreateKeywordData = { ...validationResult.data, projectId };
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords`, {
-          method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(dataToCreate),
-        });
-        if (!response.ok) { let e = "作成エラー"; try { e = await response.text(); } catch { } throw new Error(`API error (${response.status}): ${e}`); }
-        return { ok: true, message: "キーワードを作成しました。" };
-      }
-      case "update": {
-        const keywordId = formData.get("id") as string;
-        if (!keywordId) return { ok: false, error: "キーワードIDが必要です。" };
-        const dataForValidation: Record<string, any> = {};
-        if (formData.has("keywordName")) dataForValidation.keywordName = formData.get("keywordName") as string;
-        if (formData.has("parentId")) { const v = formData.get("parentId"); dataForValidation.parentId = v && v !== 'null' ? Number(v) : null; if (dataForValidation.parentId === 0) dataForValidation.parentId = null; }
-        if (formData.has("level")) dataForValidation.level = Number(formData.get("level"));
-        if (formData.has("searchVolume")) dataForValidation.searchVolume = Number(formData.get("searchVolume"));
-        if (formData.has("difficulty")) dataForValidation.difficulty = formData.get("difficulty") as string || null;
-        if (formData.has("relevance")) dataForValidation.relevance = formData.get("relevance") as string || null;
-        if (formData.has("searchIntent")) dataForValidation.searchIntent = formData.get("searchIntent") as string || null;
-        if (formData.has("importance")) dataForValidation.importance = formData.get("importance") as string || null;
-        if (formData.has("memo")) dataForValidation.memo = formData.get("memo") as string || null;
-
-        const validationResult = keywordSchema.partial().safeParse(dataForValidation);
-        if (!validationResult.success) {
-          console.error("Validation errors (update):", validationResult.error.flatten().fieldErrors);
-          return { ok: false, error: "入力内容が無効です。", errors: validationResult.error.flatten().fieldErrors };
-        }
-        const dataToUpdate: UpdateKeywordData = validationResult.data;
-        if (Object.keys(dataToUpdate).length === 0) return { ok: true, message: "更新する内容がありません。" };
-
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords/${keywordId}`, {
-          method: "PATCH", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(dataToUpdate),
-        });
-        if (!response.ok) { let e = "更新エラー"; try { e = await response.text(); } catch { } throw new Error(`API error (${response.status}): ${e}`); }
-        return { ok: true, message: "キーワードを更新しました。" };
-      }
-      case "delete": {
-        const keywordId = formData.get("id") as string;
-        if (!keywordId) return { ok: false, error: "キーワードIDが必要です。" };
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords/${keywordId}`, {
-          method: "DELETE", headers: { "Authorization": `Bearer ${token}` },
-        });
-        if (!response.ok) { let e = "削除エラー"; try { e = await response.text(); } catch { } throw new Error(`API error (${response.status}): ${e}`); }
-        return { ok: true, message: "キーワードを削除しました。" };
-      }
-      default: return { ok: false, error: "不明な操作です。" };
+      case "create":
+        return await handleCreateKeyword(formData, token, projectId); // projectId を渡す
+      case "update":
+        return await handleUpdateKeyword(formData, token);
+      case "delete":
+        return await handleDeleteKeyword(formData, token);
+      default:
+        return { ok: false, error: "不明な操作です。" };
     }
   } catch (error) {
     console.error("Action error:", error);
-    return { ok: false, error: error instanceof Error ? error.message : "操作に失敗しました" };
+    // ハンドラ内で捕捉されなかった予期せぬエラー
+    return { ok: false, error: error instanceof Error ? error.message : "予期せぬエラーが発生しました" };
   }
 };
+
 
 // --- Component ---
 export default function KeywordsRoute() {
@@ -208,24 +277,30 @@ export default function KeywordsRoute() {
     }
   };
 
-  // フォーム送信ハンドラ
-  const handleFormSubmit = (data: KeywordFormData, intent: "create" | "update", id?: number) => {
+  // フォーム送信ハンドラ (KeywordFormDialog から呼び出される)
+  // data の型を CreateKeywordFormData | UpdateKeywordFormData に変更する必要があるが、
+  // KeywordFormDialog 側の修正も必要になるため、一旦 any で受けるか、
+  // Dialog 側で intent に応じて型を確定させる。
+  // ここでは一旦、呼び出し側の修正を前提として型を調整する。
+  const handleFormSubmit = (data: CreateKeywordFormData | UpdateKeywordFormData, intent: "create" | "update", id?: number) => {
     const formData = new FormData();
     formData.append("intent", intent);
     formData.append("projectId", String(projectId));
     if (id) formData.append("id", String(id));
 
-    // KeywordFormData の各キーに対してループ
+    // スキーマでバリデーション済みのデータを FormData に詰める
+    // preprocess で変換されているため、そのまま String() で変換してよいはず
     Object.entries(data).forEach(([key, value]) => {
-      // null や undefined でない場合のみ FormData に追加
-      // Zod スキーマで型が保証されている前提
       if (value !== null && value !== undefined) {
+        // boolean 型など他の型も考慮する場合は、より丁寧な変換が必要かもしれないが、
+        // 今回のスキーマでは string, number, null, undefined のみのはず
         formData.append(key, String(value));
-      } else if (key === 'parentId' && value === null) {
-        // parentId が null の場合は空文字として送信する (API仕様に依存する可能性あり)
-        // または、送信しないという選択肢もある
-        formData.append(key, ''); // または何もしない
+      } else if (value === null) {
+        // null の場合は空文字として送信するか、送信しないか選択
+        // preprocess で null に変換されているので、ここでは空文字にする
+        formData.append(key, '');
       }
+      // undefined の場合は何もしない (FormData に追加されない)
     });
     fetcher.submit(formData, { method: "post" });
   };
