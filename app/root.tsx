@@ -50,8 +50,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // ログインページまたはLPで、かつ認証されていない場合はシンプルレイアウトを使用
   const isSimpleLayoutPage = isLoginPage || (isLandingPage && !isAuthenticated);
 
-  console.log("is:", isSimpleLayoutPage);
-
   const { theme, toggleTheme } = useTheme();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -77,7 +75,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className={cn(
-        "min-h-screen bg-background font-sans antialiased flex flex-col"
+        "bg-background font-sans antialiased flex flex-col"
       )}>
         {/* ヘッダーに isSimpleLayoutPage の値を isLoginPage プロパティとして渡す */}
         <Header
