@@ -8,14 +8,15 @@ import type { Keyword, CreateKeywordData, UpdateKeywordData } from "~/types/keyw
 import {
   createKeywordSchema,
   updateKeywordSchema,
-  type CreateKeywordFormData, // 新しい型をインポート
-  type UpdateKeywordFormData, // 新しい型をインポート
+  type CreateKeywordFormData,
+  type UpdateKeywordFormData,
 } from "~/share/zod/schemas";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import KeywordTable from "~/components/keywords/KeywordTable";
+import KeywordTreeTable from "~/components/keywords/KeywordTreeTable"; // 新しいツリーテーブルをインポート
 import KeywordFormDialog from "~/components/keywords/KeywordFormDialog";
+import KeywordDetailSidebar from "~/components/keywords/KeywordDetailSidebar"; // 詳細サイドバーをインポート
 import { X } from "lucide-react";
 
 /**
@@ -292,6 +293,8 @@ export default function KeywordsRoute() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
+  const [isDetailSidebarOpen, setIsDetailSidebarOpen] = useState(false); // 詳細サイドバーの開閉状態
+  const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null); // 詳細表示するキーワード
   const revalidator = useRevalidator();
   const prevFetcherStateRef = useRef<typeof fetcher.state | undefined>(undefined); // fetcher の前回の状態を保持する ref
 
@@ -318,19 +321,7 @@ export default function KeywordsRoute() {
     }
     // 現在の fetcher.state を ref に保存し、次回の比較に使用
     prevFetcherStateRef.current = fetcher.state;
-  }, [fetcher.state, fetcher.data, toast, revalidator, setIsFormOpen, setEditingKeyword]);
-
-  // 検索フィルター: 入力された searchTerm に基づき、キーワード名またはメモで絞り込む
-  // 注意: APIレスポンスが階層構造でも、フィルターはフラットなリストに対して行う
-  const flatFilteredKeywords = keywords.filter((keyword: Keyword) => {
-    if (!searchTerm) return true; // 検索語がない場合はすべて表示
-    const searchLower = searchTerm.toLowerCase();
-    // キーワード名またはメモに検索語が含まれるかチェック
-    return (
-      keyword.keywordName?.toLowerCase().includes(searchLower) ||
-      keyword.memo?.toLowerCase().includes(searchLower)
-    );
-  });
+  }, [fetcher.state, fetcher.data, toast, revalidator]); // setIsFormOpen, setEditingKeyword は依存配列から削除可能 (useState の setter は不変)
 
   // 検索フィルター: 入力された searchTerm に基づき、キーワード名またはメモで絞り込む
   // フィルター対象はフラット化されたリストを使用する方が効率的かもしれないが、
@@ -394,6 +385,12 @@ export default function KeywordsRoute() {
     if (window.confirm(`ID: ${keywordId} のキーワードを本当に削除しますか？`)) {
       fetcher.submit({ intent: "delete", id: String(keywordId), projectId: String(projectId) }, { method: "post" });
     }
+  };
+
+  /** 行クリック時のハンドラ: 詳細サイドバーを開き、選択されたキーワードを設定 */
+  const handleRowClick = (keyword: Keyword) => {
+    setSelectedKeyword(keyword);
+    setIsDetailSidebarOpen(true);
   };
 
   /**
@@ -478,12 +475,13 @@ export default function KeywordsRoute() {
           </div>
         )}
 
-        {/* キーワード一覧テーブル (フィルタリングされた階層データを渡す) */}
+        {/* キーワード一覧ツリーテーブル (フィルタリングされた階層データを渡す) */}
         <div className="mt-8">
-          <KeywordTable
+          <KeywordTreeTable
             keywords={filteredKeywords} // フィルタリングされたデータを渡す
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onRowClick={handleRowClick} // 行クリックハンドラを追加
           />
         </div>
 
@@ -495,6 +493,13 @@ export default function KeywordsRoute() {
           projectId={projectId}
           allKeywords={flatKeywordsForSelect} // フラット化されたキーワードリストを渡す
           onSubmit={handleFormSubmit}
+        />
+
+        {/* キーワード詳細表示サイドバー */}
+        <KeywordDetailSidebar
+          isOpen={isDetailSidebarOpen}
+          setOpen={setIsDetailSidebarOpen}
+          keyword={selectedKeyword}
         />
       </div>
     </div>
