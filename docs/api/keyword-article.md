@@ -13,7 +13,7 @@
 - **Method:** `POST`
 - **Path:** `/keywords/:keywordId/articles/:articleId`
 - **概要:** 指定されたキーワードと記事を関連付けます。
-- **認証:** 不要 (現状)
+- **認証:** 必要
 - **パスパラメータ:**
     - `keywordId` (number, **required**): 関連付けるキーワードID
     - `articleId` (number, **required**): 関連付ける記事ID
@@ -38,7 +38,7 @@
 - **Method:** `DELETE`
 - **Path:** `/keywords/:keywordId/articles/:articleId`
 - **概要:** 指定されたキーワードと記事の関連付けを解除します。
-- **認証:** 不要 (現状)
+- **認証:** 必要
 - **パスパラメータ:**
     - `keywordId` (number, **required**): 関連付けを解除するキーワードID
     - `articleId` (number, **required**): 関連付けを解除する記事ID
@@ -54,7 +54,7 @@
 - **Method:** `GET`
 - **Path:** `/keywords/:keywordId/articles`
 - **概要:** 指定されたキーワードIDに紐づく記事の一覧を取得します。
-- **認証:** 不要 (現状)
+- **認証:** 必要
 - **パスパラメータ:**
     - `keywordId` (number, **required**): 記事一覧を取得するキーワードID
 - **リクエストボディ:** なし
@@ -97,7 +97,7 @@
 - **Method:** `GET`
 - **Path:** `/articles/:articleId/keywords`
 - **概要:** 指定された記事IDに紐づくキーワードの一覧を取得します。
-- **認証:** 不要 (現状)
+- **認証:** 必要
 - **パスパラメータ:**
     - `articleId` (number, **required**): キーワード一覧を取得する記事ID
 - **リクエストボディ:** なし
