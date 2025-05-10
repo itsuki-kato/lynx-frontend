@@ -91,6 +91,8 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionDat
   }
 
   const results = [];
+  // 記事とキーワードの関連付けを行うループ
+  // TODO：まとめて登録できるようにする
   for (const articleId of articleIds) {
     for (const keywordId of keywordIds) {
       try {

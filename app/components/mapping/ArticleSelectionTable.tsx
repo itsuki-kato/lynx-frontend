@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "~/components/ui/checkbox";
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Input } from "~/components/ui/input";
+import { Badge } from "~/components/ui/badge"; // Badgeコンポーネントをインポート
 import { Search, XCircle } from 'lucide-react';
 
 interface ArticleSelectionTableProps {
@@ -55,7 +56,8 @@ export default function ArticleSelectionTable({
                 <TableHead className="w-[50px]">選択</TableHead>
                 <TableHead>タイトル</TableHead>
                 <TableHead>URL</TableHead>
-                <TableHead>概要</TableHead>
+                <TableHead className="w-[150px] md:w-[200px]">概要</TableHead> {/* 概要列の幅を調整 */}
+                <TableHead className="w-[250px] md:w-[300px]">キーワード</TableHead> {/* キーワード列の幅を指定 */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -75,7 +77,21 @@ export default function ArticleSelectionTable({
                   </TableCell>
                   <TableCell className="font-medium line-clamp-2 py-6 px-4">{article.metaTitle || 'タイトルなし'}</TableCell>
                   <TableCell className="text-muted-foreground truncate max-w-xs py-6 px-4">{article.articleUrl}</TableCell>
-                  <TableCell className="text-muted-foreground line-clamp-2 py-6 px-4">{article.metaDescription || '概要なし'}</TableCell>
+                  <TableCell className="text-muted-foreground line-clamp-2 py-6 px-4 w-[150px] md:w-[200px]">{article.metaDescription || '概要なし'}</TableCell> {/* 概要列の幅を調整 */}
+                  {/* キーワード表示セル */}
+                  <TableCell className="py-6 px-4 w-[250px] md:w-[300px]"> {/* キーワード列の幅を指定 */}
+                    <div className="flex flex-wrap gap-1">
+                      {article.keywords && article.keywords.length > 0 ? (
+                        (article.keywords as unknown as { id: number; keywordName: string }[]).map(keyword => (
+                          <Badge key={keyword.id} variant="outline">
+                            {keyword.keywordName}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
