@@ -50,7 +50,8 @@ interface KeywordTreeTableProps {
   /** 削除ボタンクリック時のコールバック関数 */
   onDelete: (keywordId: number) => void;
   /** 行クリック時のコールバック関数 */
-  onRowClick: (keyword: Keyword) => void; // 詳細表示用
+  onRowClick: (keyword: Keyword) => void; // 詳細表示用 (元の状態)
+  // selectedKeywordIds prop を削除 (元に戻す)
 }
 
 /**
@@ -62,10 +63,11 @@ export default function KeywordTreeTable({
   onEdit,
   onDelete,
   onRowClick,
+  // selectedKeywordIds, // prop を削除 (元に戻す)
 }: KeywordTreeTableProps) {
   // 列定義 (後で詳細を実装)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const columns = React.useMemo<ColumnDef<Keyword, any>[]>(
+  const columns = React.useMemo<ColumnDef<Keyword, any>[]>( // チェックボックス列を削除 (元に戻す)
     () => [
       {
         accessorKey: 'keywordName',
@@ -241,9 +243,9 @@ export default function KeywordTreeTable({
             table.getRowModel().rows.map(row => (
               <TableRow
                 key={row.id}
-                data-state={row.getIsSelected() && "selected"}
+                data-state={row.getIsSelected() && "selected"} // 元のロジックに戻す
                 onClick={() => onRowClick(row.original)} // 行クリックイベント
-                className="cursor-pointer hover:bg-muted/50" // クリック可能を示すスタイル
+                className="cursor-pointer hover:bg-muted/50" // 元のクラス名に戻す (cn と選択スタイルを削除)
               >
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id} style={{ width: cell.column.getSize() !== 150 ? `${cell.column.getSize()}px` : undefined, minWidth: cell.column.getSize() === 150 ? '150px' : undefined }}>

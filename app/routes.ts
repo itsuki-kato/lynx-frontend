@@ -11,5 +11,6 @@ export default [
   route("content", "routes/content.tsx"),
   route("internal-link-matrix", "routes/internal-link-matrix.tsx"),
   route("keywords", "routes/keywords.tsx"), // キーワード管理画面のルートを追加
+  route("keyword-article-mapping", "routes/keyword-article-mapping.tsx"), // キーワード管理画面のルートを追加
   route("analyze-overall.api", "routes/analyze-overall.api.ts"), // AI分析APIエンドポイント
 ] satisfies RouteConfig;
