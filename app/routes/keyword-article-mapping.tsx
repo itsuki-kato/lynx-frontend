@@ -184,9 +184,7 @@ export default function KeywordArticleMappingPage() {
                 選択中: 記事 {selectedArticleIds.size}件 / キーワード {selectedKeywordIds.size}件
               </Badge>
             </div>
-          </div>
-          <div className="flex-grow"> {/* テーブルエリア */}
-            <div className="flex justify-end mb-4">
+            <div> {/* ボタンを右寄せにするためのコンテナ */}
               <Button
                 onClick={handleAssociate}
                 disabled={fetcher.state === "submitting" || selectedArticleIds.size === 0 || selectedKeywordIds.size === 0}
@@ -197,6 +195,8 @@ export default function KeywordArticleMappingPage() {
                 {fetcher.state === "submitting" ? "処理中..." : "関連付ける"}
               </Button>
             </div>
+          </div>
+          <div className="flex-grow"> {/* テーブルエリア */}
             <div className="flex flex-grow gap-6 md:gap-8 flex-col md:flex-row">
               {/* 左ペイン: 記事選択 (7割) */}
               <div className="md:w-7/10 flex flex-col">
