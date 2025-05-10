@@ -122,7 +122,6 @@ export default function KeywordArticleMappingPage() {
   const [selectedKeywordIds, setSelectedKeywordIds] = useState<Set<number>>(new Set());
   const [articleSearchTerm, setArticleSearchTerm] = useState("");
   const [keywordSearchTerm, setKeywordSearchTerm] = useState("");
-  // activeTab state は削除
 
   const handleArticleSelect = (articleId: string | number) => {
     setSelectedArticleIds(prevSelectedIds => {
