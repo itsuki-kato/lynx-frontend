@@ -39,13 +39,13 @@ function MobileNavItem({ href, icon, children, setOpen }: MobileNavItemProps) {
       onClick={() => setOpen(false)}
       className={cn(
         "flex items-center px-4 py-3 rounded-lg transition-all duration-200",
-        "text-gray-600 dark:text-gray-300",
+        "text-foreground", // text-gray-600 dark:text-gray-300 を text-foreground に変更
         isActive 
           ? "bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white border-l-4 border-emerald-400" 
           : "hover:bg-gray-100 dark:hover:bg-gray-800"
       )}
     >
-      <span className={cn("mr-3", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")}>
+      <span className={cn("mr-3", isActive ? "text-white" : "text-muted-foreground")}> {/* text-gray-500 dark:text-gray-400 を text-muted-foreground に変更 */}
         {icon}
       </span>
       <span className="font-medium">{children}</span>
@@ -65,8 +65,8 @@ export function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="p-0">
-        <SheetHeader className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <SheetTitle className="text-xl font-semibold text-gray-800 dark:text-gray-200">LYNX</SheetTitle>
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="text-xl font-semibold">LYNX</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-4rem)]">
           <div className="p-4 space-y-3">
@@ -96,9 +96,9 @@ export function MobileNav() {
               <button
                 type="submit"
                 onClick={() => setOpen(false)}
-                className="w-full flex items-center px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:text-zinc-50 hover:bg-red-700 text-left"
+                className="w-full flex items-center px-4 py-3 rounded-lg text-foreground hover:text-zinc-50 hover:bg-red-700 text-left" // text-gray-600 dark:text-gray-300 を text-foreground に変更
               >
-                <LogOut size={20} className="mr-3 text-gray-500 dark:text-gray-400" />
+                <LogOut size={20} className="mr-3 text-muted-foreground" /> {/* text-gray-500 dark:text-gray-400 を text-muted-foreground に変更 */}
                 <span className="font-medium">Logout</span>
               </button>
             </Form>

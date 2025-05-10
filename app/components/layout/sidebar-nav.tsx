@@ -28,13 +28,13 @@ function NavItem({ href, icon, children }: NavItemProps) {
       to={href}
       className={cn(
         "flex items-center px-4 py-2 rounded-lg transition-all duration-200",
-        "text-gray-600 dark:text-gray-300",
+        "text-foreground", // text-gray-600 dark:text-gray-300 を text-foreground に変更
         isActive 
           ? "bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white border-l-4 border-emerald-400" 
           : "hover:bg-gray-100 dark:hover:bg-gray-800"
       )}
     >
-      <span className={cn("mr-3", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")}>
+      <span className={cn("mr-3", isActive ? "text-white" : "text-muted-foreground")}> {/* text-gray-500 dark:text-gray-400 を text-muted-foreground に変更 */}
         {icon}
       </span>
       {children}
@@ -76,9 +76,9 @@ export function SidebarNav() {
           <Form method="post" action="/logout" className="mt-4">
             <button
               type="submit"
-              className="w-full flex items-center px-4 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-zinc-50 hover:bg-red-700 text-left"
+              className="w-full flex items-center px-4 py-2 rounded-lg text-foreground hover:text-zinc-50 hover:bg-red-700 text-left" // text-gray-600 dark:text-gray-300 を text-foreground に変更
             >
-              <LogOut size={18} className="mr-3 text-gray-500 dark:text-gray-400" />
+              <LogOut size={18} className="mr-3 text-muted-foreground" /> {/* text-gray-500 dark:text-gray-400 を text-muted-foreground に変更 */}
               Logout
             </button>
           </Form>

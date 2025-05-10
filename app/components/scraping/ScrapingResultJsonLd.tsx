@@ -511,9 +511,12 @@ function GenericDisplay({ data }: { data: any }) {
   const mainProps = Object.keys(data).filter(key => !['@context', '@type', '@id'].includes(key));
   
   if (mainProps.length === 0) {
+    // mainPropsがない場合は、data自体を文字列として表示するか、あるいは何も表示しないか検討
+    // ここでは、dataがプリミティブ値であれば表示し、そうでなければ空のdivを返す例
+    const displayValue = (typeof data !== 'object' || data === null) ? String(data) : '';
     return (
-      <div className="text-sm text-muted-foreground italic"> {/* text-muted-foreground を使用 */}
-        表示可能なプロパティがありません
+      <div className="text-sm">
+        {displayValue}
       </div>
     );
   }

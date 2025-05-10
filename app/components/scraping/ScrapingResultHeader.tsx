@@ -22,12 +22,12 @@ export function ScrapingResultHeader({
   return (
     <div className="flex flex-col md:flex-row justify-between items-center mb-10">
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-extrabold">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-blue-500">
             {title}
           </span>
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-300">
+        <p className="mt-2 text-muted-foreground">
           取得した{resultsCount}件のデータを編集・管理できます
         </p>
       </div>

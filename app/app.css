@@ -16,15 +16,15 @@ body {
   :root {
     /* ベースカラー */
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 0 0% 20%; /* #333333 */
     
     /* カード */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 20%; /* #333333 */
     
     /* ポップオーバー */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 20%; /* #333333 */
     
     /* プライマリ - ティール系 (#135352) */
     --primary: 179 64% 20%;
@@ -138,5 +138,11 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1 {
+    @apply text-[hsl(var(--primary))];
+  }
+  .dark h1 {
+    @apply text-[hsl(var(--primary))];
   }
 }

@@ -40,7 +40,7 @@ export function ScrapingResultsList({ articles }: ScrapingResultsListProps) {
             >
               <div className="flex flex-col w-full">
                 <div className="flex flex-wrap items-start justify-between gap-2 w-full">
-                  <h4 className="text-primary font-medium line-clamp-1 hover:underline break-words">
+                  <h4 className="font-medium line-clamp-1 hover:underline break-words">
                     {article.metaTitle || article.articleUrl}
                   </h4>
                   <div className="flex flex-wrap gap-1 flex-shrink-0">
