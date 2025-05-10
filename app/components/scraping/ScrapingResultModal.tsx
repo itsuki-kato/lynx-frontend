@@ -56,7 +56,7 @@ export function ScrapingResultModal({
                   )}
                 </div>
                 
-                <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                <DialogTitle className="text-2xl font-bold">
                   {item.metaTitle || "タイトルなし"}
                 </DialogTitle>
               </div>
@@ -65,7 +65,7 @@ export function ScrapingResultModal({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">閉じる</span>
@@ -89,7 +89,7 @@ export function ScrapingResultModal({
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-shrink-0 h-8 px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="flex-shrink-0 h-8 px-2 text-muted-foreground hover:text-foreground"
                 onClick={copyToClipboard}
               >
                 {copied ? (

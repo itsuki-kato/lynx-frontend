@@ -19,7 +19,7 @@ export function ScrapingResultBasicInfo({ item }: Props) {
           {/* URL */}
           <div className="sm:col-span-2">
             <dt className="text-sm font-medium text-muted-foreground">URL</dt> {/* text-muted-foreground を使用 */}
-            <dd className="mt-1 text-sm break-all overflow-wrap-anywhere"> {/* text-gray-900 dark:text-gray-200 を削除 */}
+            <dd className="mt-1 text-sm break-all overflow-wrap-anywhere">
               <a
                 href={item.articleUrl}
                 target="_blank"
@@ -34,7 +34,7 @@ export function ScrapingResultBasicInfo({ item }: Props) {
           {/* タイトル */}
           <div className="sm:col-span-2">
             <dt className="text-sm font-medium text-muted-foreground">タイトル</dt> {/* text-muted-foreground を使用 */}
-            <dd className="mt-1 text-sm break-words"> {/* text-gray-900 dark:text-gray-200 を削除 */}
+            <dd className="mt-1 text-sm break-words">
               {item.metaTitle || "タイトルなし"}
             </dd>
           </div>
@@ -42,7 +42,7 @@ export function ScrapingResultBasicInfo({ item }: Props) {
           {/* 説明文 */}
           <div className="sm:col-span-2">
             <dt className="text-sm font-medium text-muted-foreground">説明文（メタディスクリプション）</dt> {/* text-muted-foreground を使用 */}
-            <dd className="mt-1 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere"> {/* text-gray-900 dark:text-gray-200 を削除 */}
+            <dd className="mt-1 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
               {item.metaDescription || "説明文なし"}
             </dd>
           </div>

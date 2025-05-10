@@ -15,11 +15,11 @@ export function NavigationBlocker({ blocker, onConfirm }: NavigationBlockerProps
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+      <div className="bg-background p-6 rounded-lg shadow-xl max-w-md w-full">
+        <h3 className="text-lg font-medium text-foreground mb-3">
           処理の中断確認
         </h3>
-        <p className="text-gray-600 dark:text-gray-300 mb-5">
+        <p className="text-muted-foreground mb-5">
           スクレイピング処理が進行中です。このページを離れると処理が中断されます。本当に移動しますか？
         </p>
         <div className="flex justify-end space-x-3">

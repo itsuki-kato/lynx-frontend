@@ -9,7 +9,7 @@ export function HeadingList({ headings }: Props) {
   return (
     <ul className="space-y-1 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
       {headings.map((heading, index) => (
-        <li key={index} className="text-gray-700 dark:text-gray-300">
+        <li key={index} className="text-foreground">
           <div className="flex items-start">
             <span className={`inline-block min-w-[40px] font-medium ${
               heading.tag === 'h1' ? 'text-lg text-emerald-600 dark:text-emerald-400' :

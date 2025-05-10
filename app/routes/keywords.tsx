@@ -431,7 +431,7 @@ export default function KeywordsRoute() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-10">
           <div>
             <h1 className="text-2xl font-bold">キーワード管理</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">
+            <p className="mt-2 text-muted-foreground">
               登録された {keywords.length} 件のキーワードを表示します
             </p>
           </div>
@@ -470,7 +470,7 @@ export default function KeywordsRoute() {
 
         {/* 検索結果カウント (フラットリストでの単純カウント) */}
         {searchTerm && (
-          <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          <div className="mb-4 text-sm text-muted-foreground">
             検索結果: {flatFilteredKeywordsCount} 件 (キーワード名・メモでの一致数)
           </div>
         )}
