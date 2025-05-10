@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
 import { useLoaderData, useFetcher } from 'react-router';
 import { requireAuth } from '~/utils/auth.server';
@@ -6,23 +6,15 @@ import { getSession } from '~/utils/session.server';
 import { useToast } from '~/hooks/use-toast';
 import type { ArticleItem } from '~/types/article';
 import type { Keyword } from '~/types/keyword';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { ScrollArea } from '~/components/ui/scroll-area';
 import KeywordSelectionTable from '~/components/mapping/KeywordSelectionTable';
+import ArticleSelectionTable from '~/components/mapping/ArticleSelectionTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Search, Link, Link2Off, CheckCircle2, XCircle, FileText, KeyRound } from 'lucide-react';
-import { cn } from '~/lib/utils';
+import { Search, Link, Link2Off, XCircle, FileText, KeyRound } from 'lucide-react';
 
 interface LoaderData {
   articles: ArticleItem[];
@@ -36,44 +28,6 @@ interface ActionData {
   message?: string;
   error?: string;
   // 詳細なエラー情報 (例: どの関連付けに失敗したか) を含めることも可能
-}
-
-// 記事カードコンポーネント
-interface ArticleCardProps {
-  article: ArticleItem;
-  isSelected: boolean;
-  onSelect: () => void;
-}
-
-function ArticleCard({ article, isSelected, onSelect }: ArticleCardProps) {
-  return (
-    <Card 
-      className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md",
-        isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-      )}
-      onClick={onSelect}
-    >
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-base line-clamp-2">
-          {article.metaTitle || 'タイトルなし'}
-        </CardTitle>
-        <CardDescription className="text-xs truncate">
-          {article.articleUrl}
-        </CardDescription>
-      </CardHeader>
-      <CardFooter className="p-4 pt-2 flex justify-between items-center">
-        {isSelected ? (
-          <Badge variant="default" className="flex items-center gap-1">
-            <CheckCircle2 size={14} />
-            <span>選択中</span>
-          </Badge>
-        ) : (
-          <Badge variant="outline">選択する</Badge>
-        )}
-      </CardFooter>
-    </Card>
-  );
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -93,8 +47,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       throw new Error(`記事一覧の取得に失敗しました: ${articlesResponse.status}`);
     }
     const articles: ArticleItem[] = await articlesResponse.json();
-
-    console.log("取得した記事一覧:", articles);
 
     // キーワード一覧の取得 (keywords.tsx を参考)
     const keywordsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords?projectId=${projectId}`, {
@@ -184,12 +136,6 @@ export default function KeywordArticleMappingPage() {
   const [keywordSearchTerm, setKeywordSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("create");
 
-  // 記事の検索フィルタリング
-  const filteredArticles = articles.filter(article => 
-    article.metaTitle?.toLowerCase().includes(articleSearchTerm.toLowerCase()) || 
-    article.articleUrl?.toLowerCase().includes(articleSearchTerm.toLowerCase())
-  );
-
   const handleArticleSelect = (articleId: string | number) => {
     setSelectedArticleIds(prevSelectedIds => {
       const newSelectedIds = new Set(prevSelectedIds);
@@ -263,104 +209,90 @@ export default function KeywordArticleMappingPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="create" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* 左ペイン: 記事選択 */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <FileText size={18} />
-                  記事選択
-                </CardTitle>
-                <CardDescription>
-                  関連付けたい記事を選択してください
-                </CardDescription>
-                <div className="relative mt-2">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="記事を検索..."
-                    className="pl-8"
-                    value={articleSearchTerm}
-                    onChange={(e) => setArticleSearchTerm(e.target.value)}
+        <TabsContent value="create" className="space-y-6 flex-grow flex flex-col">
+          {/* レイアウトをflexに変更し、高さ調整 */}
+          <div className="flex flex-grow gap-6 md:gap-8 flex-col md:flex-row">
+            {/* 左ペイン: 記事選択 (7割) */}
+            <div className="md:w-7/10 flex flex-col">
+              <Card className="flex flex-col flex-grow">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <FileText size={18} />
+                    記事選択
+                  </CardTitle>
+                  <CardDescription>
+                    関連付けたい記事を選択してください
+                  </CardDescription>
+                  {/* 検索入力は ArticleSelectionTable に移動 */}
+                </CardHeader>
+                <CardContent className="flex-grow p-4 pt-0">
+                  <ArticleSelectionTable
+                    articles={articles}
+                    selectedArticleIds={selectedArticleIds}
+                    onArticleSelect={handleArticleSelect}
+                    searchTerm={articleSearchTerm}
+                    onSearchTermChange={setArticleSearchTerm}
+                    height="flex-grow" // 高さを親要素に合わせる
                   />
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow p-4 pt-0">
-                {filteredArticles.length > 0 ? (
-                  <ScrollArea className="h-[500px] pr-4">
-                    <div className="grid grid-cols-1 gap-4">
-                      {filteredArticles.map((article) => (
-                        <ArticleCard
-                          key={article.id}
-                          article={article}
-                          isSelected={selectedArticleIds.has(article.id!)}
-                          onSelect={() => handleArticleSelect(article.id!)}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                    <XCircle size={48} className="mb-2 opacity-50" />
-                    <p>記事が見つかりません</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-            {/* 右ペイン: キーワード選択 */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <KeyRound size={18} />
-                  キーワード選択
-                </CardTitle>
-                <CardDescription>
-                  関連付けたいキーワードを選択してください
-                </CardDescription>
-                <div className="relative mt-2">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="キーワードを検索..."
-                    className="pl-8"
-                    value={keywordSearchTerm}
-                    onChange={(e) => setKeywordSearchTerm(e.target.value)}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow p-4 pt-0">
-                {keywords.length > 0 ? (
-                  <ScrollArea className="h-[500px] pr-4">
-                    <KeywordSelectionTable
-                      keywords={keywords}
-                      selectedKeywordIds={selectedKeywordIds}
-                      onKeywordSelect={(keyword) => {
-                        setSelectedKeywordIds(prevSelectedIds => {
-                          const newSelectedIds = new Set(prevSelectedIds);
-                          if (newSelectedIds.has(keyword.id)) {
-                            newSelectedIds.delete(keyword.id);
-                          } else {
-                            newSelectedIds.add(keyword.id);
-                          }
-                          return newSelectedIds;
-                        });
-                      }}
-                      searchTerm={keywordSearchTerm}
+            {/* 右ペイン: キーワード選択 (3割) */}
+            <div className="md:w-3/10 flex flex-col">
+              <Card className="flex flex-col flex-grow">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <KeyRound size={18} />
+                    キーワード選択
+                  </CardTitle>
+                  <CardDescription>
+                    関連付けたいキーワードを選択してください
+                  </CardDescription>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="キーワードを検索..."
+                      className="pl-8"
+                      value={keywordSearchTerm}
+                      onChange={(e) => setKeywordSearchTerm(e.target.value)}
                     />
-                  </ScrollArea>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                    <XCircle size={48} className="mb-2 opacity-50" />
-                    <p>キーワードが見つかりません</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="flex-grow p-4 pt-0">
+                  {keywords.length > 0 ? (
+                    <ScrollArea className="h-full"> {/* 高さを親要素に合わせる */}
+                      <KeywordSelectionTable
+                        keywords={keywords}
+                        selectedKeywordIds={selectedKeywordIds}
+                        onKeywordSelect={(keyword) => {
+                          setSelectedKeywordIds(prevSelectedIds => {
+                            const newSelectedIds = new Set(prevSelectedIds);
+                            if (newSelectedIds.has(keyword.id)) {
+                              newSelectedIds.delete(keyword.id);
+                            } else {
+                              newSelectedIds.add(keyword.id);
+                            }
+                            return newSelectedIds;
+                          });
+                        }}
+                        searchTerm={keywordSearchTerm}
+                        // height="flex-grow" // KeywordSelectionTable側で調整する想定
+                      />
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <XCircle size={48} className="mb-2 opacity-50" />
+                      <p>キーワードが見つかりません</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-6"> {/* 上にマージンを追加 */}
             <Button
               onClick={handleAssociate}
               disabled={fetcher.state === "submitting" || selectedArticleIds.size === 0 || selectedKeywordIds.size === 0}
