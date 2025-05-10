@@ -165,7 +165,7 @@ export default function KeywordArticleMappingPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 h-full flex flex-col">
+    <div className="max-w-7xl mx-auto py-8 h-full flex flex-col">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">記事・キーワード関連付け</h1>
       </div>
@@ -184,7 +184,9 @@ export default function KeywordArticleMappingPage() {
                 選択中: 記事 {selectedArticleIds.size}件 / キーワード {selectedKeywordIds.size}件
               </Badge>
             </div>
-            <div> {/* ボタンを右寄せにするためのコンテナ */}
+          </div>
+          <div className="flex-grow"> {/* テーブルエリア */}
+            <div className="flex justify-end mb-4">
               <Button
                 onClick={handleAssociate}
                 disabled={fetcher.state === "submitting" || selectedArticleIds.size === 0 || selectedKeywordIds.size === 0}
@@ -195,8 +197,6 @@ export default function KeywordArticleMappingPage() {
                 {fetcher.state === "submitting" ? "処理中..." : "関連付ける"}
               </Button>
             </div>
-          </div>
-          <div className="flex-grow"> {/* テーブルエリア */}
             <div className="flex flex-grow gap-6 md:gap-8 flex-col md:flex-row">
               {/* 左ペイン: 記事選択 (7割) */}
               <div className="md:w-7/10 flex flex-col">

@@ -54,9 +54,7 @@ export default function ArticleSelectionTable({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">選択</TableHead>
-                <TableHead>タイトル</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead className="w-[150px] md:w-[200px]">概要</TableHead> {/* 概要列の幅を調整 */}
+                <TableHead>記事</TableHead>
                 <TableHead className="w-[250px] md:w-[300px]">キーワード</TableHead> {/* キーワード列の幅を指定 */}
               </TableRow>
             </TableHeader>
@@ -75,9 +73,18 @@ export default function ArticleSelectionTable({
                       aria-label={`記事「${article.metaTitle}」を選択`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium line-clamp-2 py-6 px-4">{article.metaTitle || 'タイトルなし'}</TableCell>
-                  <TableCell className="text-muted-foreground truncate max-w-xs py-6 px-4">{article.articleUrl}</TableCell>
-                  <TableCell className="text-muted-foreground line-clamp-2 py-6 px-4 w-[150px] md:w-[200px]">{article.metaDescription || '概要なし'}</TableCell> {/* 概要列の幅を調整 */}
+                  <TableCell className="py-6 px-4">
+                    <div className="font-medium line-clamp-2">{article.metaTitle || 'タイトルなし'}</div>
+                    <a
+                      href={article.articleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 truncate max-w-xs hover:underline"
+                      onClick={(e) => e.stopPropagation()} // Prevent row click when clicking link
+                    >
+                      {article.articleUrl}
+                    </a>
+                  </TableCell>
                   {/* キーワード表示セル */}
                   <TableCell className="py-6 px-4 w-[250px] md:w-[300px]"> {/* キーワード列の幅を指定 */}
                     <div className="flex flex-wrap gap-1">
