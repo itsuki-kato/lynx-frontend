@@ -8,7 +8,8 @@ import {
   FileText,
   Users,
   Settings,
-  LogOut
+  LogOut,
+  Link2 // アイコン候補 (または GitMerge, FileText など)
 } from "lucide-react";
 import { Form } from "react-router";
 
@@ -54,6 +55,10 @@ export function SidebarNav() {
           </NavItem>
           <NavItem href="/content-management" icon={<FileText size={18} />}>
             コンテンツ管理
+          </NavItem>
+          {/* 新しい画面へのリンクを追加 */}
+          <NavItem href="/keyword-article-mapping" icon={<Link2 size={18} />}>
+            記事・キーワード関連付け
           </NavItem>
           <NavItem href="/reports/internal-links-map" icon={<FileText size={18} />}>
             Reports

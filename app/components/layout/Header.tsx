@@ -30,6 +30,7 @@ export function Header({ theme, toggleTheme, onOpenMobileSidebar, isSimpleLayout
     { to: "/scraping", label: "サイト分析", icon: Search },
     { to: "/content", label: "コンテンツ管理", icon: FileText },
     { to: "/keywords", label: "キーワード管理", icon: KeyRound },
+    { to: "/keyword-article-mapping", label: "キーワード管理", icon: KeyRound },
     { to: "/internal-link-matrix", label: "内部リンクマトリクス", icon: Link2 },
     { to: "/settings", label: "Settings", icon: Settings },
   ];
