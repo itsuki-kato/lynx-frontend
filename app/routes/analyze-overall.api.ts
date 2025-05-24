@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs } from "react-router";
 import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
 import { analyzeSeoWithGemini } from "~/utils/gemini.server";
 import type { ArticleItem } from "~/types/article";
 import type { OverallSeoAnalysis } from "~/hooks/use-article-analysis";
@@ -10,9 +9,6 @@ import type { OverallSeoAnalysis } from "~/hooks/use-article-analysis";
  * POSTリクエストでトリガーされる
  */
 export const action = async ({ request }: ActionFunctionArgs): Promise<Response> => {
-  // ログインチェック
-  await requireAuth(request);
-
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
 
