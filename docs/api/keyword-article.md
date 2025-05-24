@@ -2,7 +2,7 @@
 
 ## 認証
 
-- `/keywords/:keywordId/articles/:articleId`, `/keywords/:keywordId/articles`, `/articles/:articleId/keywords` エンドポイントは現状認証不要ですが、必要に応じて認証ガードを追加してください。
+- 現状、このコントローラーのエンドポイントに認証はかかっていません。必要に応じて `JwtAuthGuard` などを追加してください。
 
 ---
 
@@ -71,8 +71,8 @@
               "metaTitle": "記事タイトル1",
               "metaDescription": "記事の説明1",
               "isIndexable": true,
-              "headings": null, // or JSON object
-              "jsonLd": null, // or JSON object
+              "headings": { "h1": ["見出し1"] }, // 例
+              "jsonLd": { "@type": "Article" }, // 例
               "createdAt": "2025-04-29T12:30:00.000Z",
               "updatedAt": "2025-04-29T12:30:00.000Z"
             },
@@ -82,7 +82,7 @@
               "articleUrl": "https://example.com/article2",
               "metaTitle": "記事タイトル2",
               "metaDescription": "記事の説明2",
-              "isIndexable": true,
+              "isIndexable": false,
               "headings": null,
               "jsonLd": null,
               "createdAt": "2025-04-29T12:31:00.000Z",
@@ -120,7 +120,9 @@
               "importance": "高",
               "memo": "対策メモ1",
               "createdAt": "2025-04-29T12:35:00.000Z",
-              "updatedAt": "2025-04-29T12:35:00.000Z"
+              "updatedAt": "2025-04-29T12:35:00.000Z",
+              "parentKeyword": null, // KeywordResponseDto に合わせる
+              "childKeywords": []    // KeywordResponseDto に合わせる
             },
             {
               "id": 2,
@@ -135,7 +137,9 @@
               "importance": null,
               "memo": null,
               "createdAt": "2025-04-29T12:36:00.000Z",
-              "updatedAt": "2025-04-29T12:36:00.000Z"
+              "updatedAt": "2025-04-29T12:36:00.000Z",
+              "parentKeyword": null, // KeywordResponseDto に合わせる
+              "childKeywords": []    // KeywordResponseDto に合わせる
             }
           ]
           ```
