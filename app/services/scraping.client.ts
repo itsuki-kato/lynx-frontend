@@ -1,13 +1,15 @@
+import type { StartScrapingParams as ExternalStartScrapingParams } from '~/types/scraping'; // 型をインポート
+
 /**
  * スクレイピングAPIクライアント
  */
 
-interface StartScrapingParams {
-  startUrl: string;
-  targetClass: string;
+// StartScrapingParams を外部の型定義に合わせる
+interface StartScrapingParams extends ExternalStartScrapingParams {
   token?: string;
   signal?: AbortSignal;
 }
+
 
 /**
  * スクレイピング開始APIを呼び出す

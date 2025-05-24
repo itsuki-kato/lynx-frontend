@@ -1,13 +1,14 @@
 import type { Route } from "./+types/home";
-import { useLoaderData, useNavigate } from "react-router";
-import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
+import { useLoaderData, useNavigate, useMatches } from "react-router"; // useMatches をインポート
+import { getSession, getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import type { ArticleItem } from "~/types/article";
 import { useState, useEffect } from "react";
 import { ScrapingResultModal } from "~/components/scraping/ScrapingResultModal";
 import { useToast } from "~/hooks/use-toast";
 import { ArticleGrid } from "~/components/common/ArticleGrid"; // ArticleGridをインポート
+import { redirect } from "react-router"; // redirect をインポート
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -16,17 +17,35 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-export const loader = async ({ request }: Route.LoaderArgs) => {
-  // ログインチェック
-  await requireAuth(request);
+// loaderが返すデータの型を定義
+interface ContentLoaderData {
+  articles: ArticleItem[];
+  projectId: number | null;
+  error: string | null;
+}
 
+export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoaderData | Response> => {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const user = session.get("user");
+  const selectedProjectIdString = await getSelectedProjectId(request);
+
+  if (!token) {
+    console.error("No token found in content loader, should have been redirected by root.");
+    return redirect("/login");
+  }
+
+  if (!selectedProjectIdString) {
+    console.error("No project selected in content loader.");
+    return redirect("/projects/new"); 
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    console.error("Invalid projectId in session for content loader.");
+    return redirect("/projects/new");
+  }
 
   try {
-    // APIを呼び出し
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/1`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/${projectId}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -37,16 +56,28 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     }
 
     const articles = await response.json();
-    return { articles, user };
+    return { articles, projectId, error: null };
   } catch (error) {
     console.error("API fetch error:", error);
-    return { articles: [], user, error: error instanceof Error ? error.message : "データの取得に失敗しました" };
+    const currentProjectId = parseInt(selectedProjectIdString || "", 10);
+    return { articles: [], projectId: isNaN(currentProjectId) ? null : currentProjectId, error: error instanceof Error ? error.message : "データの取得に失敗しました" };
   }
 };
 
 export default function Content() {
-  const { articles, user, error } = useLoaderData();
+  const loaderData = useLoaderData<ContentLoaderData>(); // 型を修正
+  // loaderDataがResponseインスタンスである可能性は、root loaderでリダイレクトされるため低いが、型安全のためにチェック
+  if (loaderData instanceof Response) {
+    // この場合、UIは表示されないはず（リダイレクトされる）
+    console.error("Content route received a Response object from loader, this should not happen if redirects work correctly.");
+    return null; 
+  }
+  const { articles, projectId, error } = loaderData;
+
   const navigate = useNavigate();
+  const matches = useMatches();
+  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: { name?: string } } | undefined;
+  const userName = rootData?.userProfile?.name;
   const [selectedItem, setSelectedItem] = useState<ArticleItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -57,7 +88,7 @@ export default function Content() {
     if (error) {
       toast({
         title: "エラー",
-        description: error,
+        description: typeof error === 'string' ? error : "不明なエラーが発生しました。", // error の型を考慮
         variant: "destructive",
       });
     }

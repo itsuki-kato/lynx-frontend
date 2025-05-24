@@ -122,6 +122,7 @@ export function useScraping(token?: string): Omit<UseScrapingReturn, 'crawlStatu
         startUrl: values.startUrl,
         targetClass: values.targetClass,
         token,
+        // projectId, // projectId を削除
         signal: abortControllerRef.current.signal,
       });
 
@@ -220,7 +221,7 @@ export function useScraping(token?: string): Omit<UseScrapingReturn, 'crawlStatu
     } finally {
        abortControllerRef.current = null; // AbortControllerの参照をクリア
     }
-  // 依存配列に atom の setter を追加
+  // 依存配列に atom の setter を追加 (projectId を削除)
   }, [token, setGlobalScrapingResults, toast, setCrawlStatus, setProgressInfo, setErrorMessage, setJobId]);
 
   // フックは状態を直接返さず、アクション関数のみを返す

@@ -1,9 +1,11 @@
 import type { Route } from "./+types/home";
-import { useLoaderData, useNavigate, useActionData, Form, useNavigation } from "react-router"; // useNavigation をインポート
+import { useLoaderData, useNavigate, useActionData, Form, useNavigation, useMatches } from "react-router"; // useNavigation, useMatches をインポート
 import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
+// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { redirect } from "react-router"; // redirect をインポート
 import { useAtom } from "jotai";
 import { articlesAtom } from "~/atoms/article";
 import type { ArticleItem } from "~/types/article";
@@ -22,13 +24,32 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  // ログインチェック
-  await requireAuth(request);
+  // ログインチェックは root loader で行われるため削除
+  // await requireAuth(request);
 
+  // user 情報は root loader から取得するため、ここでは何も返さないか、
+  // このルート固有のデータがあればそれを返す。今回は loader 自体不要になる可能性もあるが、
+  // action で token を使うため、session 取得は残す場合もある。
+  // ただし、この loader がコンポーネントにデータを渡す目的でなければ、
+  // loader 自体を削除または空のオブジェクトを返すようにしても良い。
   const session = await getSession(request.headers.get("Cookie"));
-  const user = session.get("user");
+  const token = session.get("token");
+  const selectedProjectIdString = await getSelectedProjectId(request);
 
-  return { user };
+  if (!token) {
+    return redirect("/login");
+  }
+  if (!selectedProjectIdString) {
+    return redirect("/projects/new");
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    return redirect("/projects/new");
+  }
+
+  // このloaderでは特にデータを渡す必要がなければ、projectIdとtokenを返すだけでも良い
+  // actionで再度読み込むので、ここでは必須ではない
+  return { projectId, token }; 
 };
 
 // ArticleItem から ArticleDto への変換関数
@@ -74,28 +95,36 @@ function convertHeadings(headings: HeadingItem[]): any[] {
 type ActionResponse = { ok: true } | { ok: false; error: string };
 
 export const action = async ({ request }: Route.ActionArgs): Promise<Response> => {
-  // ログインチェック
-  await requireAuth(request);
-
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
+  const selectedProjectIdString = await getSelectedProjectId(request);
+
+  if (!token) {
+    // 通常はroot loaderで処理されるが、念のため
+    return new Response(JSON.stringify({ ok: false, error: "認証されていません" } as ActionResponse), { status: 401, headers: { 'Content-Type': 'application/json' }});
+  }
+  if (!selectedProjectIdString) {
+    return new Response(JSON.stringify({ ok: false, error: "プロジェクトが選択されていません" } as ActionResponse), { status: 400, headers: { 'Content-Type': 'application/json' }});
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    return new Response(JSON.stringify({ ok: false, error: "無効なプロジェクトIDです" } as ActionResponse), { status: 400, headers: { 'Content-Type': 'application/json' }});
+  }
 
   const formData = await request.formData();
   const _action = formData.get("_action");
 
   if (_action === "save") {
     try {
-      // FormDataからarticlesDataを取得
-      const articlesData = formData.get("articlesData");
-
-      if (!articlesData) {
+      const articlesDataString = formData.get("articlesData");
+      if (!articlesDataString) {
         return new Response(JSON.stringify({ ok: false, error: "記事データが見つかりません" } as ActionResponse), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
       }
+      const articlesToSave = JSON.parse(articlesDataString as string);
 
-      // APIを呼び出し
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping`, {
         method: "POST",
         headers: {
@@ -103,8 +132,8 @@ export const action = async ({ request }: Route.ActionArgs): Promise<Response> =
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          projectId: 1, // 固定値
-          articles: JSON.parse(articlesData as string)
+          projectId: projectId, // 動的に取得したprojectIdを使用
+          articles: articlesToSave
         })
       });
 
@@ -140,7 +169,11 @@ export const action = async ({ request }: Route.ActionArgs): Promise<Response> =
 };
 
 export default function ScrapingResults() {
-  const { user } = useLoaderData();
+  // const { user } = useLoaderData(); // user は loader から削除
+  const matches = useMatches();
+  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: { name?: string } } | undefined;
+  const userName = rootData?.userProfile?.name; // 必要であれば利用
+
   const [results] = useAtom(articlesAtom);
   const resetArticles = useResetAtom(articlesAtom);
   const navigate = useNavigate();

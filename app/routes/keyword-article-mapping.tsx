@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
-import { useLoaderData, useFetcher } from 'react-router';
-import { requireAuth } from '~/utils/auth.server';
-import { getSession } from '~/utils/session.server';
+import { useLoaderData, useFetcher, useMatches } from 'react-router'; // useMatches をインポート
+// import { requireAuth } from '~/utils/auth.server'; // requireAuth は削除
+import type { UserProfile } from '~/types/user'; // UserProfile をインポート
+import { getSession, getSelectedProjectId } from '~/utils/session.server'; // getSelectedProjectId をインポート
+import { redirect } from "react-router"; // redirect をインポート
 import { useToast } from '~/hooks/use-toast';
 import type { ArticleItem } from '~/types/article';
 import type { Keyword } from '~/types/keyword';
@@ -23,10 +25,23 @@ interface ActionData {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await requireAuth(request);
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const projectId = 1; // TODO: プロジェクト選択機能実装後に動的にする
+  const selectedProjectIdString = await getSelectedProjectId(request);
+
+  if (!token) {
+    console.error("No token found in keyword-article-mapping loader, should have been redirected by root.");
+    return redirect("/login");
+  }
+  if (!selectedProjectIdString) {
+    console.error("No project selected in keyword-article-mapping loader.");
+    return redirect("/projects/new");
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    console.error("Invalid projectId in session for keyword-article-mapping loader.");
+    return redirect("/projects/new");
+  }
 
   try {
     const articlesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/articles/minimal`, {
@@ -49,21 +64,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
     const keywords: Keyword[] = await keywordsResponse.json();
 
-    return { articles, keywords, error: null };
+    return { articles, keywords, projectId, error: null }; // projectId も返す
   } catch (error) {
     console.error("データ取得エラー (記事・キーワード関連付け画面):", error);
     return {
       articles: [],
       keywords: [],
+      projectId, // projectId も返す
       error: error instanceof Error ? error.message : "データの取得中にエラーが発生しました。",
     };
   }
 };
 
 export const action = async ({ request }: ActionFunctionArgs): Promise<ActionData> => {
-  await requireAuth(request);
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
+  // action でも projectId を取得（API呼び出しに必要であれば）
+  // const selectedProjectIdString = await getSelectedProjectId(request);
+  // if (!selectedProjectIdString) { return { error: "プロジェクトが選択されていません。" }; }
+  // const projectId = parseInt(selectedProjectIdString, 10);
+  // if (isNaN(projectId)) { return { error: "無効なプロジェクトIDです。" }; }
+
+
+  if (!token) {
+    console.error("No token found in keyword-article-mapping action, should have been redirected by root.");
+    return { error: "認証トークンが見つかりません。" };
+  }
   const formData = await request.formData();
 
   const articleIdsString = formData.get("articleIds") as string;
@@ -116,6 +142,9 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionDat
 
 export default function KeywordArticleMappingPage() {
   const { articles, keywords, error: loaderError } = useLoaderData<typeof loader>();
+  const matches = useMatches();
+  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: UserProfile } | undefined;
+  const userProfile = rootData?.userProfile; // 必要であれば利用
   const fetcher = useFetcher<ActionData>();
   const { toast } = useToast();
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<string | number>>(new Set());

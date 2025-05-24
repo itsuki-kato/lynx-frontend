@@ -12,20 +12,22 @@
 
 - **Method:** `POST`
 - **Path:** `/projects`
-- **概要:** 新しいプロジェクトを作成します。
+- **概要:** 新しいプロジェクトを作成します。リクエストしたユーザーに紐づくワークスペースが存在しない場合は、新しいワークスペースが自動的に作成され、プロジェクトはそのワークスペースに紐付けられます。
 - **認証:** 必要 (Bearer Token - `JwtAuthGuard` を使用)
 - **リクエストボディ:**
     - Content-Type: `application/json`
     - Schema: `CreateProjectDto`
       ```json
       {
+        "projectUrl": "https://example.com",
         "projectName": "新しいプロジェクト",
-        "siteUrl": "https://example.com"
+        "description": "これは新しいプロジェクトの説明です。"
       }
       ```
     - **フィールド:**
+        - `projectUrl` (string, **required**): 対象サイトのURL
         - `projectName` (string, **required**): プロジェクト名
-        - `siteUrl` (string, **required**): 対象サイトのURL
+        - `description` (string, *optional*): プロジェクトの説明
 - **レスポンス:**
     - **201 Created:** プロジェクト作成成功
         - Content-Type: `application/json`
@@ -33,9 +35,11 @@
           ```json
           {
             "id": 1,
-            "workspaceId": 1, // ユーザーに紐づくワークスペースID
+            "workspaceId": 1,
+            "projectUrl": "https://example.com",
             "projectName": "新しいプロジェクト",
-            "siteUrl": "https://example.com",
+            "description": "これは新しいプロジェクトの説明です。",
+            "lastAcquisitionDate": null,
             "createdAt": "2025-05-24T12:00:00.000Z",
             "updatedAt": "2025-05-24T12:00:00.000Z"
           }
@@ -51,27 +55,33 @@
 
 ```typescript
 // src/project/dto/create-project.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class CreateProjectDto {
   @ApiProperty({
-    description: 'プロジェクト名',
-    example: 'My Awesome Project',
-  })
-  @IsString({ message: 'プロジェクト名は文字列である必要があります。' })
-  @IsNotEmpty({ message: 'プロジェクト名は必須です。' })
-  projectName: string;
-
-  @ApiProperty({
-    description: 'サイトURL',
+    description: 'プロジェクトのURL',
     example: 'https://example.com',
   })
-  @IsUrl({}, { message: '有効なURL形式である必要があります。' })
-  @IsNotEmpty({ message: 'サイトURLは必須です。' })
-  siteUrl: string;
+  @IsNotEmpty({ message: 'プロジェクトURLは必須です。' })
+  @IsUrl({}, { message: '有効なURL形式で入力してください。' })
+  projectUrl: string;
 
-  // workspaceId はリクエストボディに含めず、認証されたユーザーから取得するため、DTOからは削除されています。
+  @ApiProperty({
+    description: 'プロジェクト名',
+    example: 'マイブログ',
+  })
+  @IsNotEmpty({ message: 'プロジェクト名は必須です。' })
+  @IsString({ message: 'プロジェクト名は文字列である必要があります。' })
+  projectName: string;
+
+  @ApiPropertyOptional({
+    description: 'プロジェクトの説明（任意）',
+    example: '日常の出来事を綴るブログです。',
+  })
+  @IsOptional()
+  @IsString({ message: '説明は文字列である必要があります。' })
+  description?: string;
 }
 ```
 
@@ -83,21 +93,27 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '@prisma/client';
 
 export class ProjectResponseDto implements Project {
-  @ApiProperty({ description: 'プロジェクトID', example: 1 })
+  @ApiProperty({ example: 1 })
   id: number;
 
-  @ApiProperty({ description: 'ワークスペースID', example: 1 })
+  @ApiProperty({ example: 1 })
   workspaceId: number;
 
-  @ApiProperty({ description: 'プロジェクト名', example: 'My Awesome Project' })
+  @ApiProperty({ example: 'https://example.com' })
+  projectUrl: string;
+
+  @ApiProperty({ example: 'マイプロジェクト' })
   projectName: string;
 
-  @ApiProperty({ description: 'サイトURL', example: 'https://example.com' })
-  siteUrl: string;
+  @ApiProperty({ example: 'これはサンプルプロジェクトです', nullable: true })
+  description: string | null;
 
-  @ApiProperty({ description: '作成日時' })
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z', nullable: true })
+  lastAcquisitionDate: Date | null;
+
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
 
-  @ApiProperty({ description: '更新日時' })
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   updatedAt: Date;
 }

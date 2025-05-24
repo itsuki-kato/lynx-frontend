@@ -1,9 +1,11 @@
 import type { Route } from "../+types/root";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useMatches } from "react-router"; // useMatches をインポート
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "~/hooks/use-toast";
-import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
+import { getSession, getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
+import type { UserProfile } from "~/types/user"; // UserProfile をインポート
+import { redirect } from "react-router"; // redirect をインポート
 import { analyzeSeoWithGemini } from "~/utils/gemini.server";
 import type { ArticleItem } from "~/types/article";
 import InternalLinkMatrix from '~/components/matrix/InternalLinkMatrix';
@@ -25,16 +27,29 @@ export function meta({ }: Route.MetaArgs) {
 
 // loader関数
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  // ログインチェック
-  await requireAuth(request);
+  // ログインチェックは root loader で行われるため削除
+  // await requireAuth(request);
 
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const user = session.get("user");
+  const selectedProjectIdString = await getSelectedProjectId(request);
+
+  if (!token) {
+    console.error("No token found in internal-link-matrix loader, should have been redirected by root.");
+    return redirect("/login");
+  }
+  if (!selectedProjectIdString) {
+    console.error("No project selected in internal-link-matrix loader.");
+    return redirect("/projects/new");
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    console.error("Invalid projectId in session for internal-link-matrix loader.");
+    return redirect("/projects/new");
+  }
 
   try {
-    // content.tsxと同じAPIエンドポイントを使用
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/1`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/${projectId}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -45,27 +60,34 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     }
 
     const articles = await response.json();
-
-    return {
-      articles,
-      user,
-      error: null,
-    };
+    return { articles, projectId, error: null }; // projectId も返す
   } catch (error) {
     console.error("API fetch error:", error);
-    // エラー発生時は空の配列とエラーメッセージを返す
-    return {
-      articles: [],
-      user,
-      error: error instanceof Error ? error.message : "データの取得に失敗しました",
-    };
+    return { articles: [], projectId, error: error instanceof Error ? error.message : "データの取得に失敗しました" }; // projectId も返す
   }
 };
 
 // action関数 - 個別記事のSEO分析
 export const action = async ({ request }: Route.ActionArgs) => {
-  // ログインチェック
-  await requireAuth(request);
+  const session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("token");
+  // action内でもプロジェクトIDが必要な場合はセッションから取得
+  // const selectedProjectIdString = await getSelectedProjectId(request);
+  // if (!selectedProjectIdString) { /* エラー処理 */ }
+  // const currentProjectId = parseInt(selectedProjectIdString, 10);
+  // if (isNaN(currentProjectId)) { /* エラー処理 */ }
+
+
+  if (!token) {
+    console.error("No token found in internal-link-matrix action, should have been redirected by root.");
+    return {
+      success: false,
+      analysis: {
+        error: true,
+        message: "認証トークンが見つかりません"
+      }
+    };
+  }
 
   const formData = await request.formData();
   const articleId = formData.get('articleId') as string;
@@ -79,9 +101,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
       }
     };
   }
-
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("token");
 
   try {
     // 特定の記事データを取得
@@ -121,7 +140,11 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 // デフォルトエクスポート
 export default function InternalLinkMatrixRoute() {
-  const { articles, error: loaderError } = useLoaderData<typeof loader>();
+  const { articles, error: loaderError } = useLoaderData<typeof loader>(); // user を削除
+  const matches = useMatches();
+  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: UserProfile } | undefined;
+  const userProfile = rootData?.userProfile; // 必要であれば利用
+
   const { runAnalysis, analysisResult, isLoading: isAnalysisLoading, error: analysisError } = useOverallAnalysis();
   const [selectedArticle, setSelectedArticle] = useState<ArticleItem | null>(null);
   const [selectedLink, setSelectedLink] = useState<{ source: ArticleItem, target: ArticleItem } | null>(null);

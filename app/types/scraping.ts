@@ -15,8 +15,15 @@ export type ScrapingEvent =
   | { type: 'completion'; message: string; processed_pages: number; total_time: number }
   | { error: string };
 
+// startScraping 関数の引数の型
+export interface StartScrapingParams {
+  startUrl: string;
+  targetClass: string;
+  // projectId: number; // projectId を削除
+}
+
 // スクレイピングフックの戻り値の型 (状態は含まない)
 export interface UseScrapingReturn {
-  startScraping: (values: { startUrl: string; targetClass: string }) => Promise<void>;
+  startScraping: (values: StartScrapingParams) => Promise<void>;
   cancelScraping: (isNavigating?: boolean) => Promise<void>;
 }

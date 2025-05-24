@@ -13,4 +13,5 @@ export default [
   route("keywords", "routes/keywords.tsx"), // キーワード管理画面のルートを追加
   route("keyword-article-mapping", "routes/keyword-article-mapping.tsx"), // キーワード管理画面のルートを追加
   route("analyze-overall.api", "routes/analyze-overall.api.ts"), // AI分析APIエンドポイント
+  route("projects/new", "routes/projects/new.tsx"),
 ] satisfies RouteConfig;

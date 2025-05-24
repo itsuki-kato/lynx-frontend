@@ -1,7 +1,8 @@
 import type { Route } from "../+types/root";
-import { useLoaderData, useFetcher, Form, useRevalidator } from "react-router"; // useRevalidator を追加
+import { useLoaderData, useFetcher, Form, useRevalidator, useMatches } from "react-router"; // useRevalidator, useMatches を追加
 import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
+// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
+import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { useState, useEffect, useRef, useCallback } from "react"; // useRef, useCallback をインポート
 import { useToast } from "~/hooks/use-toast";
 import type { Keyword, CreateKeywordData, UpdateKeywordData } from "~/types/keyword";
@@ -36,18 +37,37 @@ export function meta({ }: Route.MetaArgs) {
  * @param request Remix の LoaderArgs オブジェクト
  * @returns キーワード一覧、ユーザー情報、プロジェクトID、エラー情報を含むオブジェクト
  */
+import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { redirect } from "react-router"; // redirect をインポート
+
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireAuth(request);
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const user = session.get("user");
-  const projectId = 1; // TODO: プロジェクト選択機能実装後に動的にする
+  const selectedProjectIdString = await getSelectedProjectId(request);
+
+  if (!token) {
+    console.error("No token found in keywords loader, should have been redirected by root.");
+    // トークンがない場合は loader の責務ではないので root に任せる想定だが、念のためログインへ
+    return redirect("/login"); 
+  }
+
+  if (!selectedProjectIdString) {
+    console.error("No project selected in keywords loader.");
+    // プロジェクトが選択されていない場合、プロジェクト作成ページか選択を促すページへ
+    // ここではプロジェクト未選択エラーを返すか、/projects/new へリダイレクト
+    // return { keywords: [], flatKeywordsForSelect: [], projectId: null, error: "プロジェクトが選択されていません。" };
+    return redirect("/projects/new"); // プロジェクト作成を促す
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    console.error("Invalid projectId in session for keywords loader.");
+    return redirect("/projects/new"); // 不正なIDの場合も作成を促す
+  }
 
   try {
-    // GET /keywords API を呼び出し (projectId=1 は固定)
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords?projectId=${projectId}`, {
       headers: {
-        "Authorization": `Bearer ${token}`
+        "Authorization": `Bearer ${token}`,
       }
     });
 
@@ -80,7 +100,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     return {
       keywords: keywordsFromApi, // テーブル表示用の階層データ
       flatKeywordsForSelect, // ダイアログ選択肢用のフラットデータ
-      user,
+      // user, // 返さない
       projectId,
       error: null
     };
@@ -89,9 +109,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     // エラーが発生した場合でも、ページ描画に必要な最低限の情報を返す
     return {
       keywords: [],
-      flatKeywordsForSelect: [], // エラー時も空配列を返す
-      user,
-      projectId,
+      flatKeywordsForSelect: [],
+      projectId, // 数値型になった projectId を返す
       error: error instanceof Error ? error.message : "キーワードデータの取得に失敗しました",
     };
   }
@@ -252,17 +271,42 @@ const handleDeleteKeyword = async (formData: FormData, token: string) => {
  * @returns 各ハンドラ関数からのレスポンス (JSON)
  */
 export const action = async ({ request }: Route.ActionArgs) => {
-  await requireAuth(request);
+  // await requireAuth(request); // root loader で実施
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
+
+  if (!token) {
+    // このケースは基本的には発生しないはずだが、念のため
+    console.error("No token found in keywords action, should have been redirected by root.");
+    return { ok: false, error: "認証トークンが見つかりません。" };
+  }
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const projectId = Number(formData.get("projectId") || 1); // projectId を取得
+  // action でもセッションから projectId を取得する
+  const selectedProjectIdStringFromAction = await getSelectedProjectId(request); 
+
+  if (!selectedProjectIdStringFromAction) {
+    return { ok: false, error: "プロジェクトが選択されていません。ページをリロードしてください。" };
+  }
+  const projectIdFromSession = parseInt(selectedProjectIdStringFromAction, 10);
+  if (isNaN(projectIdFromSession)) {
+    return { ok: false, error: "不正なプロジェクトIDです。ページをリロードしてください。" };
+  }
+  
+  // フォームからも projectId を取得し、セッションの値と一致するか確認する（より安全）
+  // ただし、KeywordFormDialog が projectId を hidden input などで送信する必要がある
+  // 今回はセッションの値を優先する
+  const formProjectId = formData.get("projectId") ? Number(formData.get("projectId")) : null;
+  if (formProjectId !== null && formProjectId !== projectIdFromSession) {
+      console.warn(`Project ID mismatch in keywords action: session=${projectIdFromSession}, form=${formProjectId}. Using session ID.`);
+  }
+
 
   try {
     switch (intent) {
       case "create":
-        return await handleCreateKeyword(formData, token, projectId); // projectId を渡す
+        // handleCreateKeyword にはセッションから取得した projectIdFromSession を渡す
+        return await handleCreateKeyword(formData, token, projectIdFromSession);
       case "update":
         return await handleUpdateKeyword(formData, token);
       case "delete":
@@ -287,7 +331,11 @@ export const action = async ({ request }: Route.ActionArgs) => {
  */
 export default function KeywordsRoute() {
   // loader から階層データとフラットデータの両方を取得
-  const { keywords, flatKeywordsForSelect, user, projectId, error: loaderError } = useLoaderData<typeof loader>();
+  const { keywords, flatKeywordsForSelect, projectId, error: loaderError } = useLoaderData<typeof loader>(); // user を削除
+  const matches = useMatches();
+  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: UserProfile } | undefined;
+  const userProfile = rootData?.userProfile; // 必要であれば利用
+
   const fetcher = useFetcher<typeof action>();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -309,14 +357,15 @@ export default function KeywordsRoute() {
   useEffect(() => {
     // fetcher の state が 'loading' から 'idle' に変化し、かつ fetcher.data (action の戻り値) が存在する場合に処理
     if (prevFetcherStateRef.current === "loading" && fetcher.state === "idle" && fetcher.data) {
-      if (fetcher.data.ok) {
-        toast({ title: "成功", description: fetcher.data.message });
+      const actionData = fetcher.data as { ok: boolean; message?: string; error?: string; errors?: any }; // 型アサーションを追加
+      if (actionData.ok) {
+        toast({ title: "成功", description: actionData.message || "操作が成功しました。" });
         setIsFormOpen(false); // フォームを閉じる
         setEditingKeyword(null); // 編集状態をリセット
         revalidator.revalidate(); // データが変更された可能性があるので loader を再実行して一覧を更新
       } else {
         // エラーの場合、エラーメッセージをトースト表示
-        toast({ title: "エラー", description: fetcher.data.error || "操作に失敗しました", variant: "destructive" });
+        toast({ title: "エラー", description: actionData.error || "操作に失敗しました", variant: "destructive" });
       }
     }
     // 現在の fetcher.state を ref に保存し、次回の比較に使用

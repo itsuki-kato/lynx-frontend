@@ -1,6 +1,9 @@
 import { redirect } from "react-router";
 import { getSession, commitSession } from "./session.server";
 
+/*
+// app/root.tsx の loader に認証ロジックを集約したため、この関数は不要になりました。
+// 他の箇所で万が一使用されている可能性を考慮し、一旦コメントアウトします。
 export async function requireAuth(request: Request) {
   const session = await getSession(request.headers.get("Cookie"));
 
@@ -46,8 +49,10 @@ export async function requireAuth(request: Request) {
 
   return;
 }
+*/
 
-async function refreshAccessToken(refreshToken: string) {
+// refreshAccessToken 関数をエクスポート
+export async function refreshAccessToken(refreshToken: string) {
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: {

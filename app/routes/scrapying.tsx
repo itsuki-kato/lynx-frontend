@@ -1,8 +1,11 @@
 import type { Route } from "./+types/home";
-import { useLoaderData, useNavigate, useBlocker } from "react-router";
+import { useLoaderData, useNavigate, useBlocker, useMatches } from "react-router"; // useMatches をインポート
 import { getSession } from "~/utils/session.server";
-import { requireAuth } from "~/utils/auth.server";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"; // CardFooter は未使用なので削除
+// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
+import type { UserProfile } from "~/types/user"; // UserProfile をインポート
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { redirect } from "react-router"; // redirect をインポート
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -34,17 +37,32 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  // ログインチェック
-  await requireAuth(request);
+  // ログインチェックとトークン取得は root loader で行われるため削除
+  // await requireAuth(request);
+  // const session = await getSession(request.headers.get("Cookie"));
+  // const token = session.get("token");
+
+  // if (!token) {
+  //   throw new Response("認証トークンが見つかりません", { status: 401 });
+  // }
+
+  // root loader で認証が保証されるため、この loader は基本的に不要になるか、
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
+  const selectedProjectIdString = await getSelectedProjectId(request);
 
   if (!token) {
-    throw new Response("認証トークンが見つかりません", { status: 401 });
+    return redirect("/login");
+  }
+  if (!selectedProjectIdString) {
+    return redirect("/projects/new");
+  }
+  const projectId = parseInt(selectedProjectIdString, 10);
+  if (isNaN(projectId)) {
+    return redirect("/projects/new");
   }
 
-  // 認証トークンをクライアントに渡す
-  return { token };
+  return { token, projectId }; // token と projectId を返す
 };
 
 /**
@@ -52,15 +70,18 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
  * 内部リンクマトリクス画面のスタイルに合わせて再構築
  */
 export default function Scrapying() {
-  // useLoaderData から token を取得
-  const { token } = useLoaderData<typeof loader>();
+  // useLoaderData から token を取得する代わりに root の loader データを参照
+  const { token, projectId: currentProjectId } = useLoaderData<typeof loader>(); // token と projectId を取得
   const navigate = useNavigate();
+  const matches = useMatches();
+  // rootData は userProfile を取得する目的などで引き続き利用可能
+  const rootData = matches.find(match => match.id === 'root')?.data as { isAuthenticated?: boolean, userProfile?: UserProfile } | undefined;
 
-  // カスタムフックからアクション関数のみを取得
+  // useScraping フックに loader から取得した token を渡す
   const {
     startScraping,
     cancelScraping
-  } = useScraping(token);
+  } = useScraping(token); // projectId を削除
 
   // グローバルステートからスクレイピング状態を取得
   const [crawlStatus] = useAtom(crawlStatusAtom);
