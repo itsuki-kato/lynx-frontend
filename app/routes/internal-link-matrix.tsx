@@ -49,7 +49,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/${projectId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/detailed`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -104,7 +104,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
   try {
     // 特定の記事データを取得
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/${articleId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/${articleId}/detailed`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

@@ -125,7 +125,7 @@ export const action = async ({ request }: Route.ActionArgs): Promise<Response> =
       }
       const articlesToSave = JSON.parse(articlesDataString as string);
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/bulk`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

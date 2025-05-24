@@ -45,7 +45,7 @@ export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoad
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/scraping/project/${projectId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/detailed`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

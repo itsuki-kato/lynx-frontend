@@ -65,7 +65,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords?projectId=${projectId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords/project/${projectId}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
       }

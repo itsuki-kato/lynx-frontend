@@ -44,7 +44,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
-    const articlesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/articles/minimal`, {
+    const articlesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/minimal`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -54,7 +54,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
     const articles: ArticleItem[] = await articlesResponse.json();
 
-    const keywordsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords?projectId=${projectId}`, {
+    const keywordsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords/project/${projectId}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -110,7 +110,7 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionDat
   for (const articleId of articleIds) {
     for (const keywordId of keywordIds) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keywords/${keywordId}/articles/${articleId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/keyword-article/${keywordId}/link/${articleId}`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,
