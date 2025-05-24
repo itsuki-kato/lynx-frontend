@@ -217,15 +217,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" className={theme}>
       <head>
-        <meta charSet="utf-8" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1"
-        />
-        <Meta />
-        <Links />
-      </head>
-      <body className={cn(
+    <meta charSet="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <Meta />
+    <Links />
+  </head>
+  <body className={cn(
         "bg-background font-sans antialiased flex flex-col"
       )}>
         {/* ヘッダーに isSimpleLayoutPage の値を isLoginPage プロパティとして渡す */}
