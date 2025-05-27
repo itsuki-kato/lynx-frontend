@@ -154,7 +154,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className={cn(
-        "bg-background font-sans antialiased flex flex-col"
+        "bg-background font-sans antialiased flex flex-col min-h-screen"
       )}>
         {/* ヘッダーに isSimpleLayoutPage の値を isLoginPage プロパティとして渡す */}
         <Header
