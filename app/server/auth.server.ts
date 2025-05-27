@@ -38,7 +38,7 @@ export async function refreshAccessToken(
  * @param {boolean} commitTheSession セッションをコミットするかどうか (デフォルトはtrue)
  * @return {Promise<{ isAuthenticated: boolean; userProfile: UserProfile | null; token: string | null; redirectResponse: Response; session: Session }>}
  */
-async function createLoginRedirectResponse(
+export async function createLoginRedirectResponse(
   session: Session,
   commitTheSession: boolean = true // デフォルトでセッションをコミットする
 ): Promise<{
@@ -54,6 +54,11 @@ async function createLoginRedirectResponse(
   if (commitTheSession) {
     session.unset("token");
     session.unset("refreshToken");
+    // フラッシュメッセージをセッションに保存
+    session.flash(
+      "toastMessage",
+      JSON.stringify({ type: "error", message: "ログインが必要です。" })
+    );
   }
   const headers: HeadersInit = {};
   if (commitTheSession) {

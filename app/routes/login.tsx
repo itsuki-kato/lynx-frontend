@@ -1,6 +1,10 @@
 import { FcGoogle } from 'react-icons/fc';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '~/components/ui/button';
+import { useLoaderData } from "react-router";
+import { useEffect } from "react";
+import { useToast } from "~/hooks/use-toast";
+import { getSession, commitSession } from "~/server/session.server";
 import {
 	Card,
 	CardContent,
@@ -9,8 +13,43 @@ import {
 	CardHeader,
 	CardTitle
 } from '~/components/ui/card';
+import type { Route } from '../+types/root';
+
+interface LoaderData {
+	toastMessage: { type: string; message: string } | null;
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+	const session = await getSession(request.headers.get("Cookie"));
+	const toastMessageString = session.get("toastMessage") as string | null;
+	const toastMessage = toastMessageString ? JSON.parse(toastMessageString) : null;
+
+	// フラッシュメッセージは取得するとセッションから削除されるので、
+	// メッセージが削除されたセッションをコミットしてクライアントに返す
+	const headers = new Headers();
+	headers.append("Set-Cookie", await commitSession(session));
+	headers.append("Content-Type", "application/json");
+
+	return new Response(JSON.stringify({ toastMessage }), {
+		status: 200,
+		headers: headers,
+	});
+}
 
 export default function Login() {
+	const { toastMessage } = useLoaderData<LoaderData>();
+	const { toast } = useToast();
+
+	useEffect(() => {
+		if (toastMessage && toast) {
+			toast({
+				variant: toastMessage.type === "error" ? "destructive" : "default",
+				title: toastMessage.type === "error" ? "エラー" : "お知らせ",
+				description: toastMessage.message,
+			});
+		}
+	}, [toastMessage, toast]);
+
 	return (
 		// 背景画像を設定し、中央揃え、カバー表示にする
 		<section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-login-bg bg-cover bg-center p-4">

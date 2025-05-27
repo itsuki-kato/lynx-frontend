@@ -1,8 +1,7 @@
-import { type ActionFunctionArgs, redirect } from 'react-router'; // json を削除
-import { Form, useActionData, useNavigation } from 'react-router';
-import { z } from 'zod';
+import { redirect, Form, useActionData, useNavigation, useRouteLoaderData } from 'react-router'; // react-router から ActionFunctionArgs をインポート
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { projectSchema, type ProjectFormData } from '~/share/zod/schemas';
 import { Button } from '~/components/ui/button';
 import {
   Card,
@@ -14,209 +13,130 @@ import {
 } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Textarea } from '~/components/ui/textarea'; // Textarea をインポート
+import { Textarea } from '~/components/ui/textarea';
 import { getSession, commitSession } from '~/server/session.server';
-import { refreshAccessToken } from '~/server/auth.server';
+import type { ProjectResponseDto } from '~/types/project'; // ProjectActionResponse は削除
+import { PROJECTS_API_ENDPOINT } from '~/config/constants';
+import type { loader as rootLoaderType } from '~/root';
+// import type { Route } from '../+types/logout'; // 不要なインポートを削除
+import { createLoginRedirectResponse } from '~/server/auth.server';
+import type { Route } from '../+types/logout';
 
-// Zodスキーマ定義 (API仕様に合わせて更新)
-const projectSchema = z.object({
-  projectName: z.string().min(1, { message: 'プロジェクト名は必須です。' }),
-  projectUrl: z.string().url({ message: '有効なURLを入力してください。' }), // siteUrl から projectUrl に変更
-  description: z.string().optional(), // description を追加 (オプショナル)
-});
-
-type ProjectFormData = z.infer<typeof projectSchema>;
-
-// API仕様書の ProjectResponseDto に合わせる
-interface ProjectResponseDto {
-  id: number;
-  workspaceId: number;
-  projectUrl: string;
-  projectName: string;
-  description: string | null;
-  lastAcquisitionDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// actionが返す可能性のあるエラーの型
-interface ProjectActionResponse {
-  ok: boolean;
+// ProjectActionData 型の定義
+type ProjectActionData = {
+  success: boolean;
+  message?: string;
   fieldErrors?: {
     projectName?: string[];
-    projectUrl?: string[]; // siteUrl から projectUrl に変更
+    projectUrl?: string[];
     description?: string[];
   };
-  apiErrors?: string;
+};
+
+// ヘルパー関数: プロジェクト作成API呼び出し
+async function callCreateProjectApi(
+  token: string,
+  data: { projectName: string; projectUrl: string; description?: string | null },
+) {
+  return fetch(PROJECTS_API_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
 }
 
-export async function action({ request }: ActionFunctionArgs): Promise<Response> { // 返り値は常にResponse
-  const session = await getSession(request.headers.get('Cookie'));
-  let token = session.get('token');
-  const refreshToken = session.get('refreshToken');
-  const formData = await request.formData();
-  const rawProjectName = formData.get('projectName');
-  const rawProjectUrl = formData.get('projectUrl'); // siteUrl から projectUrl に変更
-  const rawDescription = formData.get('description'); // description を追加
+// ヘルパー関数: 成功レスポンスの作成
+async function createSuccessResponse(session: any, newProject: ProjectResponseDto) {
+  session.set('selectedProjectId', newProject.id.toString());
+  const finalSessionCookie = await commitSession(session);
+  const headers = new Headers();
+  headers.append('Set-Cookie', finalSessionCookie);
 
+  // rootパスへのリダイレクト
+  return redirect('/', { headers });
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const session = await getSession(request.headers.get('Cookie'));
+  const token = session.get('token') as string | null;
+
+  if (!token) {
+    console.error("Action called without token, should have been caught by root loader.");
+    // トークンがない場合はログインページへリダイレクト
+    const loginRedirect = await createLoginRedirectResponse(session, true);
+    return loginRedirect.redirectResponse; // redirectResponse プロパティを返す
+  }
+
+  const formData = await request.formData();
   const validationResult = projectSchema.safeParse({
-    projectName: rawProjectName,
-    projectUrl: rawProjectUrl, // siteUrl から projectUrl に変更
-    description: rawDescription, // description を追加
+    projectName: formData.get('projectName'),
+    projectUrl: formData.get('projectUrl'),
+    description: formData.get('description'),
   });
 
   if (!validationResult.success) {
-    const responseData: ProjectActionResponse = {
-      ok: false,
+    return { // ProjectActionData を返す
+      success: false,
+      message: "入力内容が無効です。",
       fieldErrors: validationResult.error.flatten().fieldErrors,
-      apiErrors: "入力内容が無効です。"
     };
-    return new Response(JSON.stringify(responseData), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
   }
 
-  const { projectName, projectUrl, description } = validationResult.data; // siteUrl から projectUrl に変更、description を追加
-
-  async function ensureValidToken() {
-    if (!token && refreshToken) {
-      try {
-        const newTokens = await refreshAccessToken(refreshToken);
-        session.set('token', newTokens.accessToken);
-        session.set('refreshToken', newTokens.refreshToken);
-        token = newTokens.accessToken;
-        return { newCookie: await commitSession(session) };
-      } catch (error) {
-        console.error('Token refresh failed in project creation action:', error);
-        throw redirect('/login', { headers: { 'Set-Cookie': await commitSession(session) } });
-      }
-    }
-    return { newCookie: null };
-  }
-
-  let cookieToSet: string | null = null;
+  const { projectName, projectUrl, description } = validationResult.data;
 
   try {
-    const tokenRefreshResult = await ensureValidToken();
-    if (tokenRefreshResult.newCookie) {
-      cookieToSet = tokenRefreshResult.newCookie;
-    }
-
-    if (!token) {
-      throw redirect('/login');
-    }
-
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/projects`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ projectName, projectUrl, description }), // siteUrl から projectUrl に変更、description を追加
-    });
+    const response = await callCreateProjectApi(token, { projectName, projectUrl, description });
 
     if (response.ok) {
-      const newProject: ProjectResponseDto = await response.json(); // 型を適用
-      session.set('selectedProjectId', newProject.id.toString());
-      const finalCookie = cookieToSet ? [cookieToSet, await commitSession(session)].join(', ') : await commitSession(session);
-      return redirect('/', {
-        headers: { 'Set-Cookie': finalCookie },
-      });
-    } else if (response.status === 401 && refreshToken) {
-      console.log('Project creation API returned 401, attempting token refresh...');
-      try {
-        const newTokens = await refreshAccessToken(refreshToken);
-        session.set('token', newTokens.accessToken);
-        session.set('refreshToken', newTokens.refreshToken);
-        token = newTokens.accessToken;
-
-        const retryResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/projects`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ projectName, projectUrl, description }), // siteUrl から projectUrl に変更、description を追加
-        });
-
-        if (retryResponse.ok) {
-          const newProject: ProjectResponseDto = await retryResponse.json(); // 型を適用
-          session.set('selectedProjectId', newProject.id.toString());
-          return redirect('/', {
-            headers: { 'Set-Cookie': await commitSession(session) },
-          });
-        }
-        const errorData = await retryResponse.json();
-        const responseData: ProjectActionResponse = {
-          ok: false,
-          apiErrors: errorData.message || 'プロジェクトの作成に失敗しました。(再試行後)',
-        };
-        return new Response(JSON.stringify(responseData), {
-          status: retryResponse.status,
-          headers: { 'Content-Type': 'application/json', 'Set-Cookie': await commitSession(session) },
-        });
-
-      } catch (refreshError) {
-        console.error('Token refresh failed during project creation retry:', refreshError);
-        // エラー時はログインページへリダイレクトするが、セッションはコミットしておく
-        return redirect('/login', { headers: { 'Set-Cookie': await commitSession(session) } });
-      }
-    } else {
-      // APIからのその他のエラー
-      const errorData = await response.json();
-      const responseData: ProjectActionResponse = {
-        ok: false,
-        apiErrors: errorData.message || 'プロジェクトの作成に失敗しました。',
-      };
-      const headers = new Headers({ 'Content-Type': 'application/json' });
-      if (cookieToSet) {
-        headers.append('Set-Cookie', cookieToSet);
-      }
-      return new Response(JSON.stringify(responseData), {
-        status: response.status,
-        headers,
-      });
+      const newProject: ProjectResponseDto = await response.json();
+      return createSuccessResponse(session, newProject);
     }
+
+    const errorData = await response.json().catch(() => ({ message: 'プロジェクトの作成に失敗しました。APIからのエラー詳細取得失敗。' }));
+    return {
+      success: false,
+      message: errorData.message || 'プロジェクトの作成に失敗しました。',
+    };
+
   } catch (error) {
-    // action内で redirect() が throw された場合や、予期せぬエラー
     if (error instanceof Response) {
-      // redirect() の場合はそのまま返す
       return error;
     }
     console.error('Unexpected error in project creation action:', error);
-    const responseData: ProjectActionResponse = {
-      ok: false,
-      apiErrors: '予期せぬエラーが発生しました。',
+    return {
+      success: false,
+      message: '予期せぬエラーが発生しました。',
     };
-    const headers = new Headers({ 'Content-Type': 'application/json' });
-    if (cookieToSet) { // トークンリフレッシュ試行時のクッキーがあればセット
-      headers.append('Set-Cookie', cookieToSet);
-    }
-    return new Response(JSON.stringify(responseData), {
-      status: 500,
-      headers,
-    });
   }
 }
 
 export default function NewProjectPage() {
-  const actionData = useActionData<ProjectActionResponse | undefined>(); // 型を修正
+  const actionData = useActionData<ProjectActionData | undefined>();
+  const rootData = useRouteLoaderData('root') as Awaited<ReturnType<typeof rootLoaderType>>;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors: formHookErrors },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
   });
 
-  // actionDataがResponseインスタンスである可能性は低いので、型ガードを簡略化
-  // actionDataがundefinedでないことを確認するだけで十分
-  const fieldErrors = actionData?.fieldErrors;
-  const apiError = actionData?.apiErrors;
+  // actionDataからのエラーを取得
+  const fieldErrors = actionData?.success === false ? actionData.fieldErrors : undefined;
+  const generalApiError = actionData?.success === false && !actionData.fieldErrors ? actionData.message : undefined;
+
+
+  // rootDataのチェック（通常はroot.tsxのloaderでリダイレクトされるため、ここは保険）
+  if (rootData && 'isAuthenticated' in rootData && !rootData.isAuthenticated) {
+    return <p>認証が必要です。ログインページにリダイレクトします...</p>;
+  }
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-4">
@@ -229,7 +149,7 @@ export default function NewProjectPage() {
             分析したいウェブサイトの情報を入力してください。
           </CardDescription>
         </CardHeader>
-        <Form method="post">
+        <Form method="post"> {/* react-hook-formとRemix Formの連携 */}
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="projectName">プロジェクト名</Label>
@@ -237,24 +157,30 @@ export default function NewProjectPage() {
                 id="projectName"
                 type="text"
                 placeholder="例: LYNX公式サイト分析"
-                aria-invalid={fieldErrors?.projectName ? 'true' : 'false'}
+                aria-invalid={!!formHookErrors.projectName || !!fieldErrors?.projectName}
                 {...register('projectName')}
               />
-              {errors.projectName && (
-                <p className="text-sm text-red-500">{errors.projectName.message}</p>
+              {formHookErrors.projectName && (
+                <p className="text-sm text-red-500">{formHookErrors.projectName.message}</p>
+              )}
+              {fieldErrors?.projectName && (
+                <p className="text-sm text-red-500">{fieldErrors.projectName[0]}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="projectUrl">サイトURL</Label> {/* siteUrl から projectUrl に変更 */}
+              <Label htmlFor="projectUrl">サイトURL</Label>
               <Input
-                id="projectUrl" // siteUrl から projectUrl に変更
+                id="projectUrl"
                 type="url"
                 placeholder="https://example.com"
-                aria-invalid={errors.projectUrl ? 'true' : 'false'} // siteUrl から projectUrl に変更
-                {...register('projectUrl')} // siteUrl から projectUrl に変更
+                aria-invalid={!!formHookErrors.projectUrl || !!fieldErrors?.projectUrl}
+                {...register('projectUrl')}
               />
-              {errors.projectUrl && ( // siteUrl から projectUrl に変更
-                <p className="text-sm text-red-500">{errors.projectUrl.message}</p>
+              {formHookErrors.projectUrl && (
+                <p className="text-sm text-red-500">{formHookErrors.projectUrl.message}</p>
+              )}
+              {fieldErrors?.projectUrl && (
+                <p className="text-sm text-red-500">{fieldErrors.projectUrl[0]}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -262,15 +188,18 @@ export default function NewProjectPage() {
               <Textarea
                 id="description"
                 placeholder="例: このプロジェクトは自社メディアのSEO分析を目的としています。"
-                aria-invalid={errors.description ? 'true' : 'false'}
+                aria-invalid={!!formHookErrors.description || !!fieldErrors?.description}
                 {...register('description')}
               />
-              {errors.description && (
-                <p className="text-sm text-red-500">{errors.description.message}</p>
+              {formHookErrors.description && (
+                <p className="text-sm text-red-500">{formHookErrors.description.message}</p>
+              )}
+              {fieldErrors?.description && (
+                <p className="text-sm text-red-500">{fieldErrors.description[0]}</p>
               )}
             </div>
-            {apiError && (
-              <p className="text-sm text-red-500 text-center">{apiError}</p>
+            {generalApiError && (
+              <p className="text-sm text-red-500 text-center">{generalApiError}</p>
             )}
           </CardContent>
           <CardFooter>

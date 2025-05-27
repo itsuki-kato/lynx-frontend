@@ -198,3 +198,18 @@ export const updateKeywordSchema = z.object({
 export type CreateKeywordFormData = z.infer<typeof createKeywordSchema>;
 /** キーワード更新フォームのデータ型 (Zod スキーマから推論) */
 export type UpdateKeywordFormData = z.infer<typeof updateKeywordSchema>;
+
+// --- Project Schemas ---
+
+/**
+ * プロジェクト作成・更新用 Zod スキーマ
+ * API仕様書の CreateProjectDto に対応。
+ */
+export const projectSchema = z.object({
+  projectName: z.string().min(1, { message: 'プロジェクト名は必須です。' }),
+  projectUrl: z.string().url({ message: '有効なURLを入力してください。' }),
+  description: z.string().optional(),
+});
+
+/** プロジェクトフォームのデータ型 (Zod スキーマから推論) */
+export type ProjectFormData = z.infer<typeof projectSchema>;
