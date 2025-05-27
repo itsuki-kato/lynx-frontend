@@ -105,7 +105,7 @@ export async function action({ request }: RootActionFunctionArgs) {
 
   if (typeof newSelectedProjectId === 'string') {
     setSelectedProjectIdInSession(session, newSelectedProjectId);
-    
+
     // 選択されたプロジェクトIDをセッションに保存
     const referer = request.headers.get('Referer') || '/';
     return redirect(referer, {
@@ -176,10 +176,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          {/* Main Content - シンプルレイアウトページでは max-w-screen-2xl を削除 */}
+          {/* Main Content */}
           <main className={cn(
             "flex flex-col justify-center flex-grow text-muted-foreground w-full mx-auto overflow-auto",
-            !isSimpleLayoutPage && "max-w-screen-2xl" // シンプルレイアウトページ以外では幅制限を適用
           )}>
             {children}
           </main>
