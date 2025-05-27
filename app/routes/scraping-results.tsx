@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
 import { useLoaderData, useNavigate, useActionData, Form, useNavigation, useMatches } from "react-router"; // useNavigation, useMatches をインポート
-import { getSession } from "~/utils/session.server";
+import { getSession } from "~/server/session.server";
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 import { useAtom } from "jotai";
 import { articlesAtom } from "~/atoms/article";

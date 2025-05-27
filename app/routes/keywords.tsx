@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 import { useLoaderData, useFetcher, Form, useRevalidator, useMatches } from "react-router"; // useRevalidator, useMatches を追加
-import { getSession } from "~/utils/session.server";
+import { getSession } from "~/server/session.server";
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { useState, useEffect, useRef, useCallback } from "react"; // useRef, useCallback をインポート
@@ -37,7 +37,7 @@ export function meta({ }: Route.MetaArgs) {
  * @param request Remix の LoaderArgs オブジェクト
  * @returns キーワード一覧、ユーザー情報、プロジェクトID、エラー情報を含むオブジェクト
  */
-import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 
 export const loader = async ({ request }: Route.LoaderArgs) => {

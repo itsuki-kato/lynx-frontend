@@ -11,11 +11,11 @@
 ### 1. キーワード単体取得 (ID指定)
 
 - **Method:** `GET`
-- **Path:** `/keywords/:id`
+- **Path:** `/keywords/:keywordId`
 - **概要:** 指定されたIDのキーワード情報を1件取得します。
 - **認証:** 必要 (Bearer Token - `JwtAuthGuard` を使用)
 - **パスパラメータ:**
-    - `id` (number, **required**): 取得対象のキーワードID
+    - `keywordId` (number, **required**): 取得対象のキーワードID
 - **レスポンス:**
     - **200 OK:** キーワード取得成功
         - Content-Type: `application/json`
@@ -51,23 +51,23 @@
                 "memo": "子キーワード",
                 "createdAt": "2025-04-30T08:41:00.000Z",
                 "updatedAt": "2025-04-30T08:41:00.000Z",
-                "parentKeyword": null, // 単体取得時は親が含まれる可能性もあるが、例では簡略化
+                "parentKeyword": null, 
                 "childKeywords": []
               }
             ]
           }
           ```
-    - **400 Bad Request:** `id` が不正な形式。
+    - **400 Bad Request:** `keywordId` が不正な形式。
     - **401 Unauthorized:** 認証トークンが無効または不足。
     - **404 Not Found:** 指定されたIDのキーワードが存在しない。
 
 ### 2. キーワード一覧取得 (プロジェクトID指定)
 
 - **Method:** `GET`
-- **Path:** `/keywords`
+- **Path:** `/keywords/project/:projectId`
 - **概要:** 指定されたプロジェクトIDに紐づくキーワードの一覧を**階層構造**で取得します。レスポンスには、各キーワードの**全階層の子キーワード**が含まれます。
 - **認証:** 必要 (Bearer Token - `JwtAuthGuard` を使用)
-- **クエリパラメータ:**
+- **パスパラメータ:**
     - `projectId` (number, **required**): キーワードを取得するプロジェクトのID
 - **レスポンス:**
     - **200 OK:** キーワード一覧取得成功
@@ -433,18 +433,16 @@ export class KeywordResponseDto
   @ApiProperty({ description: '更新日時' })
   updatedAt: Date;
 
-  // --- 変更 ---
   @ApiProperty({
-    description: '親キーワード情報 (KeywordResponseDto型)。リスト取得APIでは循環参照を避けるためnullになります。単体取得APIでは含まれる可能性があります。',
+    description: '親キーワード情報 (KeywordResponseDto型)。リスト取得APIでは循環参照を避けるためnullになります。単体取得APIでは含まれる可能性があります。Usecaseの実装により再帰的に解決されたKeywordResponseDto型のデータが含まれます。',
     type: () => KeywordResponseDto, // 自己参照のため関数形式で指定
     nullable: true,
   })
   parentKeyword: KeywordResponseDto | null;
 
   @ApiProperty({
-    description: '子キーワード情報（**全階層**の子が再帰的に含まれるKeywordResponseDto型の配列）',
+    description: '子キーワード情報（**全階層**の子が再帰的に含まれるKeywordResponseDto型の配列）。Usecaseの実装により再帰的に解決されたKeywordResponseDto型のデータが含まれます。',
     type: [KeywordResponseDto], // 配列形式で指定
   })
   childKeywords: KeywordResponseDto[];
-  // --- ここまで ---
 }

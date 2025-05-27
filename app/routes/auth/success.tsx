@@ -1,6 +1,6 @@
 import type { Route } from "./+types/success";
 import { redirect } from "react-router";
-import { getSession, commitSession } from "../../utils/session.server";
+import { getSession, commitSession } from "../../server/session.server";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   try {

@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
 import { useLoaderData, useFetcher, useMatches } from 'react-router'; // useMatches をインポート
 // import { requireAuth } from '~/utils/auth.server'; // requireAuth は削除
 import type { UserProfile } from '~/types/user'; // UserProfile をインポート
-import { getSession, getSelectedProjectId } from '~/utils/session.server'; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectId } from '~/server/session.server'; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 import { useToast } from '~/hooks/use-toast';
 import type { ArticleItem } from '~/types/article';

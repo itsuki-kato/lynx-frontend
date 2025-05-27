@@ -2,11 +2,11 @@ import type { Route } from "../+types/root";
 import { useLoaderData, useMatches } from "react-router"; // useMatches をインポート
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "~/hooks/use-toast";
-import { getSession, getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { redirect } from "react-router"; // redirect をインポート
-import { analyzeSeoWithGemini } from "~/utils/gemini.server";
+import { analyzeSeoWithGemini } from "~/server/gemini.server";
 import type { ArticleItem } from "~/types/article";
 import InternalLinkMatrix from '~/components/matrix/InternalLinkMatrix';
 import ArticleDetailSidebar from '~/components/matrix/sidebar/ArticleDetailSidebar';

@@ -15,8 +15,8 @@ import {
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea'; // Textarea をインポート
-import { getSession, commitSession } from '~/utils/session.server';
-import { refreshAccessToken } from '~/utils/auth.server';
+import { getSession, commitSession } from '~/server/session.server';
+import { refreshAccessToken } from '~/server/auth.server';
 
 // Zodスキーマ定義 (API仕様に合わせて更新)
 const projectSchema = z.object({

@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
 import { useLoaderData, useNavigate, useBlocker, useMatches } from "react-router"; // useMatches をインポート
-import { getSession } from "~/utils/session.server";
+import { getSession } from "~/server/session.server";
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
-import { getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";

@@ -47,7 +47,7 @@
     - **フィールド:**
         - `refreshToken` (string, **required**): リフレッシュトークン
 - **レスポンス:**
-    - **201 Created:** トークンのリフレッシュ成功
+    - **200 OK:** トークンのリフレッシュ成功
         - Content-Type: `application/json`
         - Schema:
           ```json

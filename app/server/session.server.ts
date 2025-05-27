@@ -7,12 +7,12 @@ if (!sessionSecret) {
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {
-    name: "__session",
-    secrets: [sessionSecret],
-    sameSite: "lax",
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    name: "__session", // セッションCookieの名前
+    secrets: [sessionSecret], // セッションCookieの秘密鍵
+    sameSite: "lax", // CSRF対策のため、SameSite属性を設定
+    path: "/", // Cookieのパスをルートに設定
+    httpOnly: true, // JavaScriptからCookieにアクセスできないようにする
+    secure: process.env.NODE_ENV === "production", // 本番環境ではSecure属性を有効にする
   },
 });
 

@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import { useLoaderData, useMatches } from "react-router"; // useMatches をインポート
-import { getSession, getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { redirect } from "react-router"; // redirect をインポート

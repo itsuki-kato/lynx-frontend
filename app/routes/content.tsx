@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import { useLoaderData, useNavigate, useMatches } from "react-router"; // useMatches をインポート
-import { getSession, getSelectedProjectId } from "~/utils/session.server"; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import type { ArticleItem } from "~/types/article";

@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
-import { getSession } from "~/utils/session.server";
-import { analyzeSeoWithGemini } from "~/utils/gemini.server";
+import { getSession } from "~/server/session.server";
+import { analyzeSeoWithGemini } from "~/server/gemini.server";
 import type { ArticleItem } from "~/types/article";
 import type { OverallSeoAnalysis } from "~/hooks/use-article-analysis";
 

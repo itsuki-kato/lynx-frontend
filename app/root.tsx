@@ -8,26 +8,26 @@ import {
   useLoaderData,
   useMatches,
   type LoaderFunctionArgs,
-  redirect, // redirect をインポート
+  redirect,
 } from 'react-router';
 import { useState } from 'react';
 import type { Route } from './+types/root';
-import type { UserProfile, Project } from '~/types/user'; // UserProfile, Project をインポート
+import type { UserProfile } from '~/types/user';
 import stylesheet from './app.css?url';
 import { Toaster } from '~/components/ui/toaster';
 import { Header } from '~/components/layout/Header';
 import { MobileSidebar } from '~/components/layout/MobileSidebar';
 import { useTheme } from '~/hooks/use-theme';
 import { cn } from '~/lib/utils';
-import { 
-  getSession, 
-  commitSession, 
-  destroySession,
-  getSelectedProjectId, 
+import {
+  getSession,
+  commitSession,
+  getSelectedProjectId,
   setSelectedProjectIdInSession
-} from '~/utils/session.server'; // getSelectedProjectId, setSelectedProjectIdInSession をインポート
-import { refreshAccessToken } from '~/utils/auth.server'; // refreshAccessToken をインポート
-import type { ActionFunctionArgs as RootActionFunctionArgs } from 'react-router'; // ActionFunctionArgs を RootActionFunctionArgs としてインポート
+} from '~/server/session.server';
+import { authenticateAndLoadUserProfile } from '~/server/auth.server';
+import { handleProjectSelectionLogic } from '~/server/project.server';
+import type { ActionFunctionArgs as RootActionFunctionArgs } from 'react-router';
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -43,127 +43,54 @@ export const links: Route.LinksFunction = () => [
   { rel: 'stylesheet', href: stylesheet }
 ];
 
-// loader関数を修正してユーザー情報とプロジェクト情報を取得
+// ユーザー情報とプロジェクト情報を取得
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get('Cookie'));
-  let token = session.get('token');
-  const refreshToken = session.get('refreshToken');
-  let isAuthenticated = !!token;
+  let session = await getSession(request.headers.get('Cookie'));
+  let selectedProjectId: string | null = null;
   let userProfile: UserProfile | null = null;
-  let selectedProjectId: string | null = null; // 選択されたプロジェクトIDを格納する変数
-  const url = new URL(request.url);
+  let isAuthenticated = false; // 初期値
 
-  // ログインページ、ランディングページ、認証成功ページ、ログアウトページは認証チェックをスキップ
-  const publicPaths = ['/login', '/landing', '/auth/success', '/logout', '/projects/new']; // /projects/new も追加
+  const url = new URL(request.url);
+  const publicPaths = ['/login', '/landing', '/auth/success', '/logout'];
+
   if (publicPaths.includes(url.pathname)) {
-    // 認証状態とユーザープロファイル、選択中プロジェクトIDを返す
-    selectedProjectId = await getSelectedProjectId(request);
+    // 公開パスの場合、認証状態はセッションから取得し、ユーザープロファイルはnullのまま
+    const tokenFromSession = session.get('token');
+    isAuthenticated = !!tokenFromSession; // トークンがあれば認証済みとみなす
+    selectedProjectId = await getSelectedProjectId(request); // 選択中のプロジェクトIDは取得しておく
     return { isAuthenticated, userProfile, selectedProjectId };
   }
 
-  console.log('Root loader - isAuthenticated:', isAuthenticated, 'token:', token, 'refreshToken:', refreshToken);
+  // 認証処理とユーザープロファイル取得
+  const authResult = await authenticateAndLoadUserProfile(request, session);
+  isAuthenticated = authResult.isAuthenticated;
+  userProfile = authResult.userProfile;
+  session = authResult.session; // 更新されたセッションを受け取る
 
-  if (!isAuthenticated && refreshToken) {
-    // アクセストークンがなくリフレッシュトークンがある場合、まずトークンリフレッシュを試みる
-    try {
-      console.log('Attempting token refresh in root loader...');
-      const newTokens = await refreshAccessToken(refreshToken);
-      session.set('token', newTokens.accessToken);
-      session.set('refreshToken', newTokens.refreshToken);
-      token = newTokens.accessToken;
-      isAuthenticated = true;
-      // セッションをコミットして新しいCookieをセットし、現在のページにリダイレクト
-      return redirect(request.url, {
-        headers: { 'Set-Cookie': await commitSession(session) },
-      });
-    } catch (error) {
-      console.error('Token refresh failed in root loader, redirecting to login:', error);
-      // リフレッシュ失敗時はログインページへ（セッションも破棄）
-      return redirect('/login', {
-        headers: { 'Set-Cookie': await destroySession(session) },
-      });
-    }
-  } else if (!isAuthenticated) {
-    // トークンが一切ない場合はログインページへ
-    console.log('No tokens found, redirecting to login from root loader.');
-    return redirect('/login');
+  if (authResult.redirectResponse) {
+    return authResult.redirectResponse;
   }
 
-  // 認証済みの場合、ユーザープロファイルを取得
-  if (isAuthenticated && token) {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  // 認証済みの場合、プロジェクト選択ロジックを実行
+  if (isAuthenticated && userProfile) {
+    const projectSelectionResult = await handleProjectSelectionLogic(request, session, userProfile);
+    selectedProjectId = projectSelectionResult.selectedProjectId;
+    session = projectSelectionResult.session; // 更新されたセッションを受け取る
 
-      if (response.ok) {
-        userProfile = await response.json();
-      } else if (response.status === 401 && refreshToken) {
-        // /user/me が401でリフレッシュトークンがある場合、再度リフレッシュを試みる
-        console.log('/user/me returned 401, attempting token refresh in root loader...');
-        try {
-          const newTokens = await refreshAccessToken(refreshToken);
-          session.set('token', newTokens.accessToken);
-          session.set('refreshToken', newTokens.refreshToken);
-          // セッションをコミットして新しいCookieをセットし、現在のページにリダイレクトして再試行
-          return redirect(request.url, {
-            headers: { 'Set-Cookie': await commitSession(session) },
-          });
-        } catch (refreshError) {
-          console.error('Token refresh failed after /user/me 401, redirecting to login:', refreshError);
-          return redirect('/login', {
-            headers: { 'Set-Cookie': await destroySession(session) },
-          });
-        }
-      } else {
-        // 401以外のエラー、またはリフレッシュトークンがない401
-        console.error('Failed to fetch user profile, status:', response.status, await response.text());
-        return redirect('/login', {
-          headers: { 'Set-Cookie': await destroySession(session) },
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return redirect('/login', {
-        headers: { 'Set-Cookie': await destroySession(session) },
-      });
+    if (projectSelectionResult.redirectResponse) {
+      return projectSelectionResult.redirectResponse;
     }
-  }
-
-  // 認証済みの場合、ユーザープロファイルと選択中プロジェクトIDを取得
-  selectedProjectId = await getSelectedProjectId(request);
-
-  // プロジェクト未作成時のリダイレクト処理
-  if (
-    isAuthenticated &&
-    userProfile &&
-    (!userProfile.projects || userProfile.projects.length === 0) &&
-    url.pathname !== '/projects/new' // プロジェクト作成ページ自体へのアクセスは許可
-  ) {
-    console.log('No projects found for user, redirecting to /projects/new');
-    return redirect('/projects/new');
-  }
-
-  // プロジェクトが存在し、選択中のプロジェクトIDが無効な場合の処理
-  if (userProfile && userProfile.projects && userProfile.projects.length > 0) {
-    const projectIds = userProfile.projects.map(p => p.id.toString());
-    let newSelectedProjectId = selectedProjectId; // 更新用の一時変数
-
-    if (!newSelectedProjectId || !projectIds.includes(newSelectedProjectId)) {
-      // 選択中のIDがない、または無効なIDの場合、最初のプロジェクトを選択状態にする
-      newSelectedProjectId = projectIds[0];
-      // setSelectedProjectIdInSession は string 型を期待するため、nullでないことを保証
-      if (newSelectedProjectId) {
-        setSelectedProjectIdInSession(session, newSelectedProjectId);
-        console.log(`Selected project ID was invalid or not set. Defaulting to ${newSelectedProjectId}. Redirecting to commit session.`);
-        // セッションをコミットしてリダイレクトし、選択状態を反映
-        return redirect(request.url, {
-          headers: { 'Set-Cookie': await commitSession(session) },
-        });
-      }
-    }
-    // selectedProjectId を更新された値で確定（リダイレクトしなかった場合）
-    selectedProjectId = newSelectedProjectId;
+  } else if (isAuthenticated && !userProfile) {
+    // 認証はされているが、何らかの理由でユーザープロファイルが取得できなかった場合
+    // (authenticateAndLoadUserProfile でリダイレクトされなかったケース)
+    // ここで再度ログインページにリダイレクトするか、エラー処理を行う
+    console.error("User is authenticated but profile is null, redirecting to login.");
+    // セッションを破棄してログインへ
+    session.unset('token');
+    session.unset('refreshToken');
+    return redirect('/login', {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    });
   }
 
 
@@ -178,8 +105,8 @@ export async function action({ request }: RootActionFunctionArgs) {
 
   if (typeof newSelectedProjectId === 'string') {
     setSelectedProjectIdInSession(session, newSelectedProjectId);
-    // どこから呼び出されたかによってリダイレクト先を変えることもできるが、
-    // 基本的には現在のページを再読み込み（リダイレクト）してloaderを再実行させる
+    
+    // 選択されたプロジェクトIDをセッションに保存
     const referer = request.headers.get('Referer') || '/';
     return redirect(referer, {
       headers: { "Set-Cookie": await commitSession(session) },
@@ -217,16 +144,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" className={theme}>
       <head>
-    <meta charSet="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-    <link rel="icon" href="/favicon.png" type="image/png" />
-    <Meta />
-    <Links />
-  </head>
-  <body className={cn(
+        <meta charSet="utf-8" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <Meta />
+        <Links />
+      </head>
+      <body className={cn(
         "bg-background font-sans antialiased flex flex-col"
       )}>
         {/* ヘッダーに isSimpleLayoutPage の値を isLoginPage プロパティとして渡す */}
