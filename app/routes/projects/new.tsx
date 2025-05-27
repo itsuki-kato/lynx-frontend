@@ -1,4 +1,4 @@
-import { redirect, Form, useActionData, useNavigation, useRouteLoaderData } from 'react-router'; // react-router から ActionFunctionArgs をインポート
+import { redirect, Form, useActionData, useNavigation, useRouteLoaderData } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { projectSchema, type ProjectFormData } from '~/share/zod/schemas';
@@ -15,10 +15,9 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea';
 import { getSession, commitSession } from '~/server/session.server';
-import type { ProjectResponseDto } from '~/types/project'; // ProjectActionResponse は削除
+import type { ProjectResponseDto } from '~/types/project';
 import { PROJECTS_API_ENDPOINT } from '~/config/constants';
 import type { loader as rootLoaderType } from '~/root';
-// import type { Route } from '../+types/logout'; // 不要なインポートを削除
 import { createLoginRedirectResponse } from '~/server/auth.server';
 import type { Route } from '../+types/logout';
 
@@ -67,7 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
     console.error("Action called without token, should have been caught by root loader.");
     // トークンがない場合はログインページへリダイレクト
     const loginRedirect = await createLoginRedirectResponse(session, true);
-    return loginRedirect.redirectResponse; // redirectResponse プロパティを返す
+    return loginRedirect.redirectResponse;
   }
 
   const formData = await request.formData();
@@ -78,7 +77,7 @@ export async function action({ request }: Route.ActionArgs) {
   });
 
   if (!validationResult.success) {
-    return { // ProjectActionData を返す
+    return {
       success: false,
       message: "入力内容が無効です。",
       fieldErrors: validationResult.error.flatten().fieldErrors,
@@ -115,13 +114,11 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function NewProjectPage() {
   const actionData = useActionData<ProjectActionData | undefined>();
-  const rootData = useRouteLoaderData('root') as Awaited<ReturnType<typeof rootLoaderType>>;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
 
   const {
     register,
-    handleSubmit,
     formState: { errors: formHookErrors },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -130,12 +127,6 @@ export default function NewProjectPage() {
   // actionDataからのエラーを取得
   const fieldErrors = actionData?.success === false ? actionData.fieldErrors : undefined;
   const generalApiError = actionData?.success === false && !actionData.fieldErrors ? actionData.message : undefined;
-
-
-  // rootDataのチェック（通常はroot.tsxのloaderでリダイレクトされるため、ここは保険）
-  if (rootData && 'isAuthenticated' in rootData && !rootData.isAuthenticated) {
-    return <p>認証が必要です。ログインページにリダイレクトします...</p>;
-  }
 
 
   return (
@@ -149,7 +140,7 @@ export default function NewProjectPage() {
             分析したいウェブサイトの情報を入力してください。
           </CardDescription>
         </CardHeader>
-        <Form method="post"> {/* react-hook-formとRemix Formの連携 */}
+        <Form method="post">
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="projectName">プロジェクト名</Label>
