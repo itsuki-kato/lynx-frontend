@@ -10,22 +10,17 @@ import {
 	CardTitle
 } from '~/components/ui/card';
 
-/**
- * ログインページコンポーネント
- * LPのデザインに忠実に合わせたモダンなデザイン
- */
 export default function Login() {
 	return (
 		// 背景画像を設定し、中央揃え、カバー表示にする
 		<section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-login-bg bg-cover bg-center p-4">
-			{/* 背景画像の上にカードを配置し、幅をさらに広げる */}
-			<Card className="relative z-10 w-full max-w-2xl bg-card/80 p-6 shadow-xl backdrop-blur-sm"> {/* max-w-lg から max-w-2xl に変更 */}
+			<Card className="relative z-10 w-full max-w-2xl bg-card/70 p-6 shadow-xl backdrop-blur-sm">
 				<CardHeader className="items-center text-center">
 					{/* ロゴ */}
 					<img
 						src="/lynx_logo_main.webp"
 						alt="LYNX"
-						className="mb-4 h-16" // マージン調整
+						className="mb-4 h-16"
 					/>
 					{/* タイトル */}
 					<CardTitle className="text-3xl font-extrabold leading-tight md:text-4xl">
@@ -41,7 +36,7 @@ export default function Login() {
 				</CardHeader>
 				<CardContent className="flex flex-col items-center">
 					{/* ログインボタン */}
-					<div className="my-8"> {/* マージン調整 */}
+					<div className="my-8">
 						<a
 							href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`}
 						>
