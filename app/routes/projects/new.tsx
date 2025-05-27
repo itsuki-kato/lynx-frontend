@@ -1,4 +1,4 @@
-import { redirect, Form, useActionData, useNavigation, useRouteLoaderData } from 'react-router';
+import { redirect, Form, useActionData, useNavigation } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { projectSchema, type ProjectFormData } from '~/share/zod/schemas';
@@ -17,7 +17,6 @@ import { Textarea } from '~/components/ui/textarea';
 import { getSession, commitSession } from '~/server/session.server';
 import type { ProjectResponseDto } from '~/types/project';
 import { PROJECTS_API_ENDPOINT } from '~/config/constants';
-import type { loader as rootLoaderType } from '~/root';
 import { createLoginRedirectResponse } from '~/server/auth.server';
 import type { Route } from '../+types/logout';
 
