@@ -1,5 +1,5 @@
-import type { ArticleItem } from '~/types/article';
-import type { ProgressInfo } from '~/types/scraping';
+import type { ArticleItem } from "~/types/article";
+import type { ProgressInfo } from "~/types/scraping";
 
 /**
  * ストリームイベントのコールバック関数の型定義
@@ -8,7 +8,11 @@ interface StreamCallbacks {
   onStatus: (message: string) => void;
   onProgress: (progress: ProgressInfo) => void;
   onData: (article: ArticleItem) => void;
-  onCompletion: (completionInfo: { message: string; processedPages: number; elapsedTime: number }) => void;
+  onCompletion: (completionInfo: {
+    message: string;
+    processedPages: number;
+    elapsedTime: number;
+  }) => void;
   onError: (error: string) => void;
   onStreamEnd?: () => void; // ストリームが予期せず終了した場合のコールバック (オプション)
 }
@@ -35,10 +39,19 @@ export const processScrapingStream = async (
           try {
             const json = JSON.parse(buffer.trim());
             // 最後のデータ処理
-            if (json.type === 'completion') {
-              callbacks.onCompletion({ message: json.message, processedPages: json.processed_pages, elapsedTime: json.total_time });
+            if (json.type === "completion") {
+              callbacks.onCompletion({
+                message: json.message,
+                processedPages: json.processed_pages,
+                elapsedTime: json.total_time,
+              });
               receivedCompletionOrError = true;
-            } else if (!json.type && typeof json === 'object' && json !== null && 'articleUrl' in json) {
+            } else if (
+              !json.type &&
+              typeof json === "object" &&
+              json !== null &&
+              "articleUrl" in json
+            ) {
               callbacks.onData(json as ArticleItem);
             } else if (json.error) {
               callbacks.onError(`スクレイピングエラー: ${json.error}`);
@@ -52,14 +65,16 @@ export const processScrapingStream = async (
         }
         // 完了/エラーメッセージなしでストリームが終了した場合
         if (!receivedCompletionOrError && callbacks.onStreamEnd) {
-           console.warn("Stream ended unexpectedly without completion/error message.");
-           callbacks.onStreamEnd();
+          console.warn(
+            "Stream ended unexpectedly without completion/error message."
+          );
+          callbacks.onStreamEnd();
         }
         break;
       }
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
+      const lines = buffer.split("\n");
       buffer = lines.pop() || ""; // 最後の不完全な行をバッファに残す
 
       for (const line of lines) {
@@ -68,19 +83,32 @@ export const processScrapingStream = async (
           const json = JSON.parse(line.trim());
 
           // データタイプに応じてコールバックを呼び出し
-          if (json.type === 'status') {
+          if (json.type === "status") {
             callbacks.onStatus(json.message);
-          } else if (json.type === 'progress') {
-            callbacks.onProgress({ message: json.message, processedPages: json.processed_pages, elapsedTime: json.elapsed_time });
-          } else if (json.type === 'completion') {
-            callbacks.onCompletion({ message: json.message, processedPages: json.processed_pages, elapsedTime: json.total_time });
+          } else if (json.type === "progress") {
+            callbacks.onProgress({
+              message: json.message,
+              processedPages: json.processed_pages,
+              elapsedTime: json.elapsed_time,
+            });
+          } else if (json.type === "completion") {
+            callbacks.onCompletion({
+              message: json.message,
+              processedPages: json.processed_pages,
+              elapsedTime: json.total_time,
+            });
             receivedCompletionOrError = true;
             break; // 完了したらループを抜ける
           } else if (json.error) {
             callbacks.onError(`スクレイピングエラー: ${json.error}`);
             receivedCompletionOrError = true;
             break; // エラーが発生したらループを抜ける
-          } else if (!json.type && typeof json === 'object' && json !== null && 'articleUrl' in json) {
+          } else if (
+            !json.type &&
+            typeof json === "object" &&
+            json !== null &&
+            "articleUrl" in json
+          ) {
             // ArticleItem 型であることを確認 (より厳密なチェックも可能)
             callbacks.onData(json as ArticleItem);
           } else {
@@ -88,7 +116,9 @@ export const processScrapingStream = async (
           }
         } catch (e) {
           console.error("Error parsing JSON line:", e, line);
-          callbacks.onError(`レスポンスの解析中にエラーが発生しました: ${line}`);
+          callbacks.onError(
+            `レスポンスの解析中にエラーが発生しました: ${line}`
+          );
           receivedCompletionOrError = true;
           break; // 解析エラーが発生したらループを抜ける
         }
@@ -98,6 +128,10 @@ export const processScrapingStream = async (
     }
   } catch (error) {
     console.error("Error reading stream:", error);
-    callbacks.onError(error instanceof Error ? error.message : "ストリームの読み取り中に予期せぬエラーが発生しました");
+    callbacks.onError(
+      error instanceof Error
+        ? error.message
+        : "ストリームの読み取り中に予期せぬエラーが発生しました"
+    );
   }
 };

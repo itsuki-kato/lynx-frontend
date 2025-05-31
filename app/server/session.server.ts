@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "react-router";
+import { createCookieSessionStorage, redirect } from "react-router";
 
 const sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret) {
@@ -23,11 +23,19 @@ export const destroySession = sessionStorage.destroySession;
 /**
  * リクエストから選択されているプロジェクトIDを取得します。
  * @param request RemixのRequestオブジェクト
- * @returns 選択されているプロジェクトID (文字列)、または存在しない場合はnull
+ * @return 選択されたプロジェクトID (文字列) または null
+ * @throws リダイレクト: プロジェクトが選択されていない場合は新規作成ページへリダイレクトします。
  */
-export async function getSelectedProjectId(request: Request): Promise<string | null> {
+export async function getSelectedProjectId(request: Request): Promise<string> {
   const session = await getSession(request.headers.get("Cookie"));
-  return session.get("selectedProjectId") || null;
+  const selectedProjectId = session.get("selectedProjectId");
+
+  // プロジェクトが選択されていない場合は新規作成ページへリダイレクト
+  if (!selectedProjectId) {
+    throw redirect("/projects/new");
+  }
+
+  return selectedProjectId;
 }
 
 /**
@@ -36,7 +44,10 @@ export async function getSelectedProjectId(request: Request): Promise<string | n
  * @param session RemixのSessionオブジェクト
  * @param projectId 設定するプロジェクトID (文字列)
  */
-export function setSelectedProjectIdInSession(session: any, projectId: string): void {
+export function setSelectedProjectIdInSession(
+  session: any,
+  projectId: string
+): void {
   session.set("selectedProjectId", projectId);
 }
 
