@@ -7,12 +7,10 @@ import {
   ScrollRestoration,
   useLoaderData,
   useMatches,
-  type LoaderFunctionArgs,
   redirect,
 } from 'react-router';
 import { useState } from 'react';
 import type { Route } from './+types/root';
-import type { UserProfile } from '~/types/user';
 import stylesheet from './app.css?url';
 import { Toaster } from '~/components/ui/toaster';
 import { Header } from '~/components/layout/Header';
@@ -34,7 +32,6 @@ import {
   createProjectRedirectResponse,
   type ProjectSelectionResult
 } from '~/server/project.server';
-import type { ActionFunctionArgs as RootActionFunctionArgs } from 'react-router';
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -51,58 +48,58 @@ export const links: Route.LinksFunction = () => [
 ];
 
 // ユーザー情報とプロジェクト情報を取得
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   // セッションを取得
   let session = await getSession(request.headers.get('Cookie'));
-  
+
   // 認証処理を実行
   const authResult: AuthResult = await authenticate(request, session);
-  
+
   // 認証結果からリダイレクトが必要な場合は実行
   const authRedirect = await createRedirectResponse(authResult);
   if (authRedirect) {
     return authRedirect;
   }
-  
+
   // 認証結果を取得
   const { isAuthenticated, userProfile } = authResult;
   session = authResult.session; // 更新されたセッションを受け取る
-  
+
   // 認証されていない場合は早期リターン
   if (!isAuthenticated) {
     return { isAuthenticated, userProfile, selectedProjectId: null };
   }
-  
+
   // 公開パスの場合はプロジェクト選択をスキップ
   const url = new URL(request.url);
   const publicPaths = ['/', '/login', '/landing', '/auth/success', '/logout', '/projects/new'];
   if (publicPaths.includes(url.pathname)) {
     return { isAuthenticated, userProfile, selectedProjectId: null };
   }
-  
+
   // プロジェクト選択ロジックを実行
   const projectResult: ProjectSelectionResult = await handleProjectSelection(
-    request, 
-    session, 
+    request,
+    session,
     userProfile
   );
-  
+
   // プロジェクト選択結果からリダイレクトが必要な場合は実行
   const projectRedirect = await createProjectRedirectResponse(projectResult);
   if (projectRedirect) {
     return projectRedirect;
   }
-  
+
   // 最終的な結果を返す
-  return { 
-    isAuthenticated, 
-    userProfile, 
-    selectedProjectId: projectResult.selectedProjectId 
+  return {
+    isAuthenticated,
+    userProfile,
+    selectedProjectId: projectResult.selectedProjectId
   };
 }
 
 // プロジェクト選択を処理するaction関数
-export async function action({ request }: RootActionFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
   const formData = await request.formData();
   const newSelectedProjectId = formData.get("selectedProjectId");
@@ -119,7 +116,6 @@ export async function action({ request }: RootActionFunctionArgs) {
   // 不正なリクエストの場合は何もしないかエラーを返す
   return new Response("Bad Request", { status: 400 });
 }
-
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, userProfile, selectedProjectId } = useLoaderData<typeof loader>();

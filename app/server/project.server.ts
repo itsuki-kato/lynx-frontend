@@ -28,19 +28,19 @@ export async function handleProjectSelection(
     return {
       selectedProjectId: null,
       session,
-      redirectTo: null
+      redirectTo: null,
     };
   }
 
   const url = new URL(request.url);
   const currentPath = url.pathname;
-  
+
   // プロジェクト作成ページへのアクセスは常に許可
   if (currentPath === "/projects/new") {
     return {
       selectedProjectId: null,
       session,
-      redirectTo: null
+      redirectTo: null,
     };
   }
 
@@ -49,24 +49,24 @@ export async function handleProjectSelection(
     return {
       selectedProjectId: null,
       session,
-      redirectTo: "/projects/new"
+      redirectTo: "/projects/new",
     };
   }
 
   // セッションから選択中のプロジェクトIDを取得
   let selectedProjectId = getSelectedProjectIdFromSession(session);
-  const projectIds = userProfile.projects.map(p => p.id.toString());
+  const projectIds = userProfile.projects.map((p) => p.id.toString());
 
   // 選択中のプロジェクトIDが無効な場合は最初のプロジェクトを選択
   if (!selectedProjectId || !projectIds.includes(selectedProjectId)) {
     selectedProjectId = projectIds[0];
     setSelectedProjectIdInSession(session, selectedProjectId);
-    
+
     // 現在のURLに再リダイレクト（新しいプロジェクトIDで再試行）
     return {
       selectedProjectId,
       session,
-      redirectTo: currentPath
+      redirectTo: currentPath,
     };
   }
 
@@ -74,7 +74,7 @@ export async function handleProjectSelection(
   return {
     selectedProjectId,
     session,
-    redirectTo: null
+    redirectTo: null,
   };
 }
 
@@ -86,7 +86,7 @@ export async function createProjectRedirectResponse(
 ): Promise<Response | null> {
   if (result.redirectTo) {
     return redirect(result.redirectTo, {
-      headers: { "Set-Cookie": await commitSession(result.session) }
+      headers: { "Set-Cookie": await commitSession(result.session) },
     });
   }
   return null;

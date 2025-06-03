@@ -27,7 +27,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
     const session = await getSession(request.headers.get("Cookie"));
     const user = await res.json();
-    
+
     // セッションにトークン、リフレッシュトークン、ユーザー情報を保存
     session.set("token", token);
     session.set("refreshToken", refreshToken);
