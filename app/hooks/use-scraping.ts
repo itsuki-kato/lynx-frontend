@@ -8,44 +8,78 @@ import {
   scrapingJobIdAtom,
 } from "~/atoms/scraping";
 import { useToast } from "~/hooks/use-toast";
-import type { UseScrapingReturn } from "~/types/scraping";
+import type { UseScrapingReturn, StartScrapingParams } from "~/types/scraping";
 import {
   startScrapingApi,
   cancelScrapingApi,
 } from "~/services/scraping.client";
 import { processScrapingStream } from "~/utils/stream-processor.client";
 
-export function useScraping(
-  token: string | null
-): Omit<
-  UseScrapingReturn,
-  "crawlStatus" | "progressInfo" | "errorMessage" | "jobId"
-> {
-  // Jotai atom を使用
+/**
+ * スクレイピング機能を提供するカスタムフック
+ * 
+ * @param token - 認証トークン
+ * @returns スクレイピング開始・中断機能を提供するオブジェクト
+ */
+export function useScraping(token: string | null) {
+  // Jotai atomを使用した状態管理
   const [, setCrawlStatus] = useAtom(crawlStatusAtom);
   const [, setProgressInfo] = useAtom(progressInfoAtom);
-  const [_, setGlobalScrapingResults] = useAtom(articlesAtom);
+  const [, setGlobalScrapingResults] = useAtom(articlesAtom);
   const [, setErrorMessage] = useAtom(scrapingErrorMessageAtom);
   const [jobId, setJobId] = useAtom(scrapingJobIdAtom);
+  
   const { toast } = useToast();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 中断処理関数
+  /**
+   * 状態をリセットする内部関数
+   */
+  const resetState = useCallback(() => {
+    setCrawlStatus("idle");
+    setJobId(null);
+    setProgressInfo(null);
+  }, [setCrawlStatus, setJobId, setProgressInfo]);
+
+  /**
+   * AbortControllerをクリーンアップする内部関数
+   */
+  const cleanupAbortController = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      console.log("Fetch aborted by frontend.");
+    }
+  }, []);
+
+  /**
+   * ジョブIDを抽出する内部関数
+   */
+  const extractJobId = useCallback((response: Response): string | null => {
+    const allHeaders = [...response.headers.entries()];
+    console.log("All response headers:", allHeaders);
+
+    // ヘッダーからジョブIDを検索
+    for (const [key, value] of allHeaders) {
+      if (key.toLowerCase() === "x-job-id") {
+        return value;
+      }
+    }
+
+    // フォールバック検索
+    return response.headers.get("x-job-id") || 
+           response.headers.get("X-Job-ID");
+  }, []);  /**
+   * スクレイピング処理を中断する
+   * @param isNavigating - ページ遷移による中断かどうか
+   */
   const cancelScraping = useCallback(
     async (isNavigating = false) => {
-      // jobId は atom から取得
       if (!jobId) {
         console.warn("Cannot cancel scraping: Job ID is not set.");
-        setCrawlStatus("idle"); // atom を更新
-        setJobId(null); // atom を更新
-        setProgressInfo(null); // atom を更新
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          abortControllerRef.current = null;
-          console.log("Fetch aborted by frontend.");
-        }
-        // 中断時は現在のグローバルステートを保持 (特に更新は不要)
-        // setGlobalScrapingResults(globalScrapingResults); // 不要
+        resetState();
+        cleanupAbortController();
+        
         if (!isNavigating) {
           toast({
             title: "中断処理",
@@ -57,16 +91,11 @@ export function useScraping(
       }
 
       console.log(`Attempting to cancel job: ${jobId}`);
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-        console.log("Fetch aborted by frontend.");
-      }
+      cleanupAbortController();
 
       try {
-        // APIクライアント関数を呼び出す
         const stopResponse = await cancelScrapingApi({ jobId });
-        const result = await stopResponse.json(); // レスポンスボディは常に読み取る
+        const result = await stopResponse.json();
 
         if (stopResponse.ok) {
           console.log(`Stop signal sent successfully for job: ${jobId}`);
@@ -79,7 +108,6 @@ export function useScraping(
             });
           }
         } else {
-          // APIクライアント側で warn ログは出力済み
           console.error(`Failed to send stop signal for job: ${jobId}`, result);
           if (!isNavigating) {
             toast({
@@ -91,7 +119,6 @@ export function useScraping(
           }
         }
       } catch (error) {
-        // cancelScrapingApi は通常 fetch レベルのエラーをスローしない想定だが念のため
         console.error(
           `Error calling cancelScrapingApi for job: ${jobId}`,
           error
@@ -104,33 +131,25 @@ export function useScraping(
           });
         }
       } finally {
-        // 中断時の状態リセットは常に実行
-        // setGlobalScrapingResults(globalScrapingResults); // 不要
-        setCrawlStatus("idle");
-        setJobId(null); // atom を更新
-        setProgressInfo(null); // atom を更新
+        resetState();
       }
     },
-    [
-      jobId,
-      toast,
-      setCrawlStatus,
-      setJobId,
-      setProgressInfo,
-      setGlobalScrapingResults,
-    ]
-  ); // 依存配列に atom の setter を追加
-
-  // フォーム送信時の処理 (fetchとストリーム処理を開始)
+    [jobId, toast, resetState, cleanupAbortController]
+  );
+  /**
+   * スクレイピング処理を開始する
+   * @param values - スクレイピング実行パラメータ
+   */
   const startScraping = useCallback(
-    async (values: { startUrl: string; targetClass: string }) => {
-      // 状態をリセット (atom を使用)
+    async (values: StartScrapingParams) => {
       console.log("Starting scraping, resetting state using atoms...");
+      
+      // 状態をリセット
       setCrawlStatus("running");
       setProgressInfo(null);
       setErrorMessage(null);
       setJobId(null);
-      setGlobalScrapingResults([]); // 記事結果のグローバルステートをリセット
+      setGlobalScrapingResults([]);
       abortControllerRef.current = new AbortController();
 
       try {
@@ -139,33 +158,15 @@ export function useScraping(
           startUrl: values.startUrl,
           targetClass: values.targetClass,
           token,
-          // projectId, // projectId を削除
           signal: abortControllerRef.current.signal,
         });
 
-        // APIクライアントがエラーをスローするので、ここでの !response.ok チェックは不要
-
-        // レスポンスヘッダーから Job ID を取得
-        const allHeaders = [...response.headers.entries()];
-        console.log("All response headers:", allHeaders);
-
-        let foundJobId = null;
-        for (const [key, value] of allHeaders) {
-          if (key.toLowerCase() === "x-job-id") {
-            foundJobId = value;
-            break;
-          }
-        }
-
-        const currentJobId =
-          foundJobId ||
-          response.headers.get("x-job-id") ||
-          response.headers.get("X-Job-ID");
+        // レスポンスヘッダーからJob IDを取得
+        const currentJobId = extractJobId(response);
 
         if (currentJobId) {
           console.log("Received Job ID:", currentJobId);
           setJobId(currentJobId);
-          // Job ID 取得ロジックは変更なし
           toast({
             title: "スクレイピング開始",
             description: `ジョブID: ${currentJobId}`,
@@ -186,23 +187,18 @@ export function useScraping(
 
         const reader = response.body.getReader();
 
-        // ストリーム処理ユーティリティを呼び出すためのコールバックを定義
-        // ストリーム処理ユーティリティを呼び出すためのコールバックを定義
+        // ストリーム処理を開始
         await processScrapingStream(reader, {
           onStatus: (message) => {
-            // setProgressInfo は atom の setter
             setProgressInfo({ message, processedPages: 0, elapsedTime: 0 });
           },
           onProgress: (progress) => {
-            // setProgressInfo は atom の setter
             setProgressInfo(progress);
           },
           onData: (article) => {
-            // グローバルステートを直接更新
             setGlobalScrapingResults((prev) => [...prev, article]);
           },
           onCompletion: (completionInfo) => {
-            // setProgressInfo, setCrawlStatus は atom の setter
             setProgressInfo((prev) => ({
               ...(prev ?? { message: "", processedPages: 0, elapsedTime: 0 }),
               ...completionInfo,
@@ -211,33 +207,21 @@ export function useScraping(
             setCrawlStatus("completed");
           },
           onError: (errorMsg) => {
-            // setErrorMessage, setCrawlStatus は atom の setter
             setErrorMessage(errorMsg);
             setCrawlStatus("error");
           },
           onStreamEnd: () => {
-            // crawlStatus は atom から読み取る必要があるが、ここでは setter のみ使用
-            // 完了状態にするか、エラー状態にするかは要検討。ここでは完了扱い。
-            // Note: このロジックは crawlStatus の現在の値に依存するため、
-            // Jotai の get 関数を使うか、別の方法で状態を読む必要があるかもしれない。
-            // 一旦、単純に完了にする。
-            // if (crawlStatus !== 'error' && crawlStatus !== 'completed') { // このチェックは atom では直接できない
             setCrawlStatus("completed");
-            // }
-            // 予期せぬ終了の場合 (completion/errorなし)
-            // setGlobalScrapingResults(accumulatedArticles); // onDataで更新済み
             console.log("Stream ended unexpectedly.");
           },
         });
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           console.log("Fetch aborted.");
-          // AbortError の場合は状態を idle に戻すのが自然かもしれない
           setCrawlStatus("idle");
-          setProgressInfo(null); // 進行状況もリセット
+          setProgressInfo(null);
         } else {
           console.error("Scraping request failed:", err);
-          // setErrorMessage, setCrawlStatus は atom の setter
           setErrorMessage(
             err instanceof Error
               ? err.message
@@ -246,9 +230,8 @@ export function useScraping(
           setCrawlStatus("error");
         }
       } finally {
-        abortControllerRef.current = null; // AbortControllerの参照をクリア
+        abortControllerRef.current = null;
       }
-      // 依存配列に atom の setter を追加 (projectId を削除)
     },
     [
       token,
@@ -258,15 +241,11 @@ export function useScraping(
       setProgressInfo,
       setErrorMessage,
       setJobId,
+      extractJobId,
     ]
   );
-
   // フックは状態を直接返さず、アクション関数のみを返す
   return {
-    // crawlStatus, // 削除
-    // progressInfo, // 削除
-    // errorMessage, // 削除
-    // jobId, // 削除
     startScraping,
     cancelScraping,
   };

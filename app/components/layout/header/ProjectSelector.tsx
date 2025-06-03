@@ -24,8 +24,15 @@ interface ProjectSelectorProps {
 export function ProjectSelector({ userProfile, selectedProjectId }: ProjectSelectorProps) {
   const fetcher = useFetcher();
 
-  // ユーザープロファイルまたはプロジェクトが存在しない場合は何も表示しない
-  if (!userProfile || !userProfile.projects || userProfile.projects.length === 0) {
+  // ユーザープロファイルが存在しない場合は何も表示しない (またはログインを促すメッセージなど)
+  if (!userProfile) {
+    // 例えば、ログインしていない場合は何も表示しないか、
+    // ログインを促すシンプルなテキストやボタンを表示する
+    return null; // または適切なプレースホルダー
+  }
+
+  // ユーザープロファイルは存在するが、プロジェクトがない場合
+  if (!userProfile.projects || userProfile.projects.length === 0) {
     return (
       <div className="ml-4">
         <DropdownMenu>

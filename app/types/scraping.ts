@@ -19,10 +19,9 @@ export type ScrapingEvent =
 export interface StartScrapingParams {
   startUrl: string;
   targetClass: string;
-  // projectId: number; // projectId を削除
 }
 
-// スクレイピングフックの戻り値の型 (状態は含まない)
+// スクレイピングフックの戻り値の型
 export interface UseScrapingReturn {
   startScraping: (values: StartScrapingParams) => Promise<void>;
   cancelScraping: (isNavigating?: boolean) => Promise<void>;

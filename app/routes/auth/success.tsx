@@ -33,12 +33,23 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     session.set("refreshToken", refreshToken);
     session.set("user", user);
 
-    // ユーザー情報を取得できた場合はホーム画面にリダイレクト
-    return redirect("/", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
+    // ユーザーにプロジェクトがない場合は新規作成ページへリダイレクト
+    if (!user.projects || user.projects.length === 0) {
+      console.log("No projects found, redirecting to /projects/new");
+      return redirect("/projects/new", {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      });
+    } else {
+      // プロジェクトがある場合はホーム画面にリダイレクト
+      console.log("Projects found, redirecting to home");
+      return redirect("/", {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      });
+    }
   } catch (error) {
     console.error('Authentication error:', error);
     return redirect("/login");

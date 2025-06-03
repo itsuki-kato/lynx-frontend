@@ -123,6 +123,8 @@ export async function authenticateAndLoadUserProfile(
   let token = session.get("token") as string | null;
   const refreshToken = session.get("refreshToken") as string | null;
 
+  console.log("ここまで3")
+
   // 1. アクセストークンがない場合
   if (!token) {
     if (refreshToken) {
@@ -151,15 +153,16 @@ export async function authenticateAndLoadUserProfile(
     } else {
       // 1b. リフレッシュトークンもない場合：ログインページへ
       console.log(
-        "No tokens found, redirecting to login from authenticateAndLoadUserProfile."
+        "No tokens found, redirecting to login from authenticateAndLoadUserProfile. Clearing session."
       );
-      // このケースでは、セッションにトークン情報がないため、Set-Cookieでのセッションクリアは不要
-      return await createLoginRedirectResponse(session, false);
+      // 念のためセッションをクリアしてログインへリダイレクト
+      return await createLoginRedirectResponse(session, true);
     }
   }
 
   // 2. アクセストークンがある場合：ユーザープロファイルを取得
   try {
+    console.log("Fetching user profile with access token:", token);
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/user/me`,
       {
