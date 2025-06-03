@@ -2,7 +2,7 @@ import type { Route } from "../+types/root";
 import { useLoaderData, useMatches } from "react-router"; // useMatches をインポート
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "~/hooks/use-toast";
-import { getSession, getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectIdFromSession } from "~/server/session.server";
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import type { UserProfile } from "~/types/user"; // UserProfile をインポート
 import { redirect } from "react-router"; // redirect をインポート
@@ -32,7 +32,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   if (!token) {
     console.error("No token found in internal-link-matrix loader, should have been redirected by root.");

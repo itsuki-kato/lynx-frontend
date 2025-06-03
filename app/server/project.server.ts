@@ -1,70 +1,93 @@
 import { redirect, type Session } from "react-router";
 import type { UserProfile } from "~/types/user";
 import {
-  getSelectedProjectId,
+  getSelectedProjectIdFromSession,
   setSelectedProjectIdInSession,
   commitSession,
 } from "~/server/session.server";
 
 /**
- * プロジェクトの選択ロジックを処理し、必要に応じてリダイレクトを行います。
- * @param request - 現在のリクエストオブジェクト
- * @param session - 現在のセッションオブジェクト
- * @param userProfile - 認証済みユーザーのプロファイル情報
- * @returns selectedProjectId と redirectResponse (リダイレクトが必要な場合) を含むオブジェクト
+ * プロジェクト選択の結果を表す型
  */
-export async function handleProjectSelectionLogic(
+export type ProjectSelectionResult = {
+  selectedProjectId: string | null;
+  session: Session;
+  redirectTo: string | null;
+};
+
+/**
+ * プロジェクト選択ロジックを処理する
+ */
+export async function handleProjectSelection(
   request: Request,
   session: Session,
   userProfile: UserProfile | null
-): Promise<{
-  selectedProjectId: string | null;
-  redirectResponse: Response | null;
-  session: Session;
-}> {
-  // 選択中のプロジェクトIDを取得
-  let selectedProjectId = await getSelectedProjectId(request);
-  const url = new URL(request.url);
-
-  // プロジェクト未作成時のリダイレクト処理
-  if (
-    userProfile &&
-    userProfile.projects.length === 0 &&
-    url.pathname !== "/projects/new" // プロジェクト作成ページ自体へのアクセスは許可
-  ) {
-    console.log(
-      "No projects found for user, redirecting to /projects/new from project.server.ts"
-    );
+): Promise<ProjectSelectionResult> {
+  // ユーザープロファイルがない場合
+  if (!userProfile) {
     return {
       selectedProjectId: null,
-      redirectResponse: redirect("/projects/new"),
       session,
+      redirectTo: null
     };
   }
 
-  // プロジェクトが存在し、選択中のプロジェクトIDが無効な場合の処理
-  if (userProfile && userProfile.projects.length > 0) {
-    const projectIds = userProfile.projects.map((p) => p.id.toString());
-    let newSelectedProjectId = selectedProjectId;
-
-    if (!newSelectedProjectId || !projectIds.includes(newSelectedProjectId)) {
-      newSelectedProjectId = projectIds[0];
-      if (newSelectedProjectId) {
-        setSelectedProjectIdInSession(session, newSelectedProjectId);
-        console.log(
-          `Selected project ID was invalid or not set. Defaulting to ${newSelectedProjectId}. Redirecting to commit session from project.server.ts.`
-        );
-        return {
-          selectedProjectId: newSelectedProjectId, // デフォルト設定されたIDを返す
-          redirectResponse: redirect(request.url, {
-            headers: { "Set-Cookie": await commitSession(session) },
-          }),
-          session,
-        };
-      }
-    }
-    selectedProjectId = newSelectedProjectId; // 有効なID、またはデフォルト設定されなかった場合は元のID
+  const url = new URL(request.url);
+  const currentPath = url.pathname;
+  
+  // プロジェクト作成ページへのアクセスは常に許可
+  if (currentPath === "/projects/new") {
+    return {
+      selectedProjectId: null,
+      session,
+      redirectTo: null
+    };
   }
 
-  return { selectedProjectId, redirectResponse: null, session };
+  // プロジェクトが存在しない場合は新規作成ページへリダイレクト
+  if (userProfile.projects.length === 0) {
+    return {
+      selectedProjectId: null,
+      session,
+      redirectTo: "/projects/new"
+    };
+  }
+
+  // セッションから選択中のプロジェクトIDを取得
+  let selectedProjectId = getSelectedProjectIdFromSession(session);
+  const projectIds = userProfile.projects.map(p => p.id.toString());
+
+  // 選択中のプロジェクトIDが無効な場合は最初のプロジェクトを選択
+  if (!selectedProjectId || !projectIds.includes(selectedProjectId)) {
+    selectedProjectId = projectIds[0];
+    setSelectedProjectIdInSession(session, selectedProjectId);
+    
+    // 現在のURLに再リダイレクト（新しいプロジェクトIDで再試行）
+    return {
+      selectedProjectId,
+      session,
+      redirectTo: currentPath
+    };
+  }
+
+  // 有効なプロジェクトIDが選択されている場合
+  return {
+    selectedProjectId,
+    session,
+    redirectTo: null
+  };
+}
+
+/**
+ * プロジェクト選択結果からリダイレクトレスポンスを生成する（必要な場合）
+ */
+export async function createProjectRedirectResponse(
+  result: ProjectSelectionResult
+): Promise<Response | null> {
+  if (result.redirectTo) {
+    return redirect(result.redirectTo, {
+      headers: { "Set-Cookie": await commitSession(result.session) }
+    });
+  }
+  return null;
 }

@@ -1,6 +1,6 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/content";
 import { useLoaderData, useNavigate, useMatches } from "react-router"; // useMatches をインポート
-import { getSession, getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
+import { getSession, getSelectedProjectIdFromSession } from "~/server/session.server"; // 正しい関数名をインポート
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import type { ArticleItem } from "~/types/article";
@@ -27,7 +27,7 @@ interface ContentLoaderData {
 export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoaderData | Response> => {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   if (!token) {
     console.error("No token found in content loader, should have been redirected by root.");

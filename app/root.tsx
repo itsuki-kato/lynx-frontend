@@ -24,8 +24,16 @@ import {
   commitSession,
   setSelectedProjectIdInSession
 } from '~/server/session.server';
-import { authenticateAndLoadUserProfile } from '~/server/auth.server';
-import { handleProjectSelectionLogic } from '~/server/project.server';
+import {
+  authenticate,
+  createRedirectResponse,
+  type AuthResult
+} from '~/server/auth.server';
+import {
+  handleProjectSelection,
+  createProjectRedirectResponse,
+  type ProjectSelectionResult
+} from '~/server/project.server';
 import type { ActionFunctionArgs as RootActionFunctionArgs } from 'react-router';
 
 export const links: Route.LinksFunction = () => [
@@ -44,74 +52,53 @@ export const links: Route.LinksFunction = () => [
 
 // ユーザー情報とプロジェクト情報を取得
 export async function loader({ request }: LoaderFunctionArgs) {
+  // セッションを取得
   let session = await getSession(request.headers.get('Cookie'));
-  let selectedProjectId: string | null = null;
-  let userProfile: UserProfile | null = null;
-  let isAuthenticated = false; // 初期値
-
+  
+  // 認証処理を実行
+  const authResult: AuthResult = await authenticate(request, session);
+  
+  // 認証結果からリダイレクトが必要な場合は実行
+  const authRedirect = await createRedirectResponse(authResult);
+  if (authRedirect) {
+    return authRedirect;
+  }
+  
+  // 認証結果を取得
+  const { isAuthenticated, userProfile } = authResult;
+  session = authResult.session; // 更新されたセッションを受け取る
+  
+  // 認証されていない場合は早期リターン
+  if (!isAuthenticated) {
+    return { isAuthenticated, userProfile, selectedProjectId: null };
+  }
+  
+  // 公開パスの場合はプロジェクト選択をスキップ
   const url = new URL(request.url);
   const publicPaths = ['/', '/login', '/landing', '/auth/success', '/logout', '/projects/new'];
-
-  // 公開パスの場合、認証状態はセッションから取得し、ユーザープロファイルはnullのまま
   if (publicPaths.includes(url.pathname)) {
-    const tokenFromSession = session.get('token');
-    isAuthenticated = !!tokenFromSession; // トークンがあれば認証済みとみなす
-    
-    // プロジェクト作成ページの場合は、認証済みならユーザープロファイルを取得
-    if (url.pathname === '/projects/new' && isAuthenticated) {
-      try {
-        const authResult = await authenticateAndLoadUserProfile(request, session);
-        isAuthenticated = authResult.isAuthenticated;
-        userProfile = authResult.userProfile;
-        session = authResult.session;
-        
-        if (authResult.redirectResponse) {
-          return authResult.redirectResponse;
-        }
-      } catch (error) {
-        console.error("Error loading user profile for /projects/new:", error);
-      }
-    }
-    
-    return { isAuthenticated, userProfile, selectedProjectId: null }; // selectedProjectId は null を返す
+    return { isAuthenticated, userProfile, selectedProjectId: null };
   }
-
-  // 認証処理とユーザープロファイル取得
-  const authResult = await authenticateAndLoadUserProfile(request, session);
-  isAuthenticated = authResult.isAuthenticated;
-  userProfile = authResult.userProfile;
-  session = authResult.session; // 更新されたセッションを受け取る
-
-  if (authResult.redirectResponse) {
-    return authResult.redirectResponse;
+  
+  // プロジェクト選択ロジックを実行
+  const projectResult: ProjectSelectionResult = await handleProjectSelection(
+    request, 
+    session, 
+    userProfile
+  );
+  
+  // プロジェクト選択結果からリダイレクトが必要な場合は実行
+  const projectRedirect = await createProjectRedirectResponse(projectResult);
+  if (projectRedirect) {
+    return projectRedirect;
   }
-
-  // 認証済みの場合、プロジェクト選択ロジックを実行
-  // ただし、公開パスの場合はプロジェクト選択ロジックをスキップする
-  if (isAuthenticated && userProfile && !publicPaths.includes(url.pathname)) {
-    const projectSelectionResult = await handleProjectSelectionLogic(request, session, userProfile);
-    selectedProjectId = projectSelectionResult.selectedProjectId;
-    session = projectSelectionResult.session; // 更新されたセッションを受け取る
-
-    if (projectSelectionResult.redirectResponse) {
-      return projectSelectionResult.redirectResponse;
-    }
-
-  } else if (isAuthenticated && !userProfile) {
-    // 認証はされているが、何らかの理由でユーザープロファイルが取得できなかった場合
-    // (authenticateAndLoadUserProfile でリダイレクトされなかったケース)
-    // ここで再度ログインページにリダイレクトするか、エラー処理を行う
-    console.error("User is authenticated but profile is null, redirecting to login.");
-    // セッションを破棄してログインへ
-    session.unset('token');
-    session.unset('refreshToken');
-    return redirect('/login', {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    });
-  }
-
-
-  return { isAuthenticated, userProfile, selectedProjectId };
+  
+  // 最終的な結果を返す
+  return { 
+    isAuthenticated, 
+    userProfile, 
+    selectedProjectId: projectResult.selectedProjectId 
+  };
 }
 
 // プロジェクト選択を処理するaction関数

@@ -37,13 +37,13 @@ export function meta({ }: Route.MetaArgs) {
  * @param request Remix の LoaderArgs オブジェクト
  * @returns キーワード一覧、ユーザー情報、プロジェクトID、エラー情報を含むオブジェクト
  */
-import { getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
+import { getSelectedProjectIdFromSession } from "~/server/session.server"; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   if (!token) {
     console.error("No token found in keywords loader, should have been redirected by root.");
@@ -283,7 +283,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
   // action でもセッションから projectId を取得する
-  const selectedProjectIdStringFromAction = await getSelectedProjectId(request); 
+  const selectedProjectIdStringFromAction = getSelectedProjectIdFromSession(session);
 
   if (!selectedProjectIdStringFromAction) {
     return { ok: false, error: "プロジェクトが選択されていません。ページをリロードしてください。" };

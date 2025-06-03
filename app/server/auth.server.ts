@@ -3,9 +3,17 @@ import { commitSession } from "./session.server";
 import type { UserProfile } from "~/types/user";
 
 /**
+ * 認証関連の結果を表す型
+ */
+export type AuthResult = {
+  isAuthenticated: boolean;
+  userProfile: UserProfile | null;
+  session: Session;
+  redirectTo: string | null;
+};
+
+/**
  * アクセストークンをリフレッシュする
- * @param {string} refreshToken リフレッシュトークン
- * @returns { accessToken: string; refreshToken: string }
  */
 export async function refreshAccessToken(
   refreshToken: string
@@ -19,150 +27,17 @@ export async function refreshAccessToken(
   });
 
   if (!res.ok) {
-    const errorBody = await res.text();
-    console.error(
-      "Failed to refresh token, status:",
-      res.status,
-      "body:",
-      errorBody
-    );
-    throw new Error(`Failed to refresh token: ${res.status} ${errorBody}`);
+    throw new Error(`Failed to refresh token: ${res.status}`);
   }
 
   return res.json();
 }
 
 /**
- * ログインページへリダイレクトするレスポンスを生成
- * @param {Session} session セッションオブジェクト
- * @param {boolean} commitTheSession セッションをコミットするかどうか (デフォルトはtrue)
- * @return {Promise<{ isAuthenticated: boolean; userProfile: UserProfile | null; token: string | null; redirectResponse: Response; session: Session }>}
+ * ユーザープロファイルを取得する
  */
-export async function createLoginRedirectResponse(
-  session: Session,
-  commitTheSession: boolean = true // デフォルトでセッションをコミットする
-): Promise<{
-  isAuthenticated: boolean;
-  userProfile: UserProfile | null;
-  token: string | null;
-  redirectResponse: Response;
-  session: Session;
-}> {
-  console.log(
-    "Redirecting to login, clearing tokens from session if specified."
-  );
-  if (commitTheSession) {
-    session.unset("token");
-    session.unset("refreshToken");
-    // フラッシュメッセージをセッションに保存
-    session.flash(
-      "toastMessage",
-      JSON.stringify({ type: "error", message: "ログインが必要です。" })
-    );
-  }
-  const headers: HeadersInit = {};
-  if (commitTheSession) {
-    headers["Set-Cookie"] = await commitSession(session);
-  }
-  return {
-    isAuthenticated: false,
-    userProfile: null,
-    token: null,
-    redirectResponse: redirect("/login", { headers }),
-    session,
-  };
-}
-
-/**
- * リダイレクトレスポンスを生成し、現在のURLにリロードして新しいトークンで再試行する
- * @param {Request} request リクエストオブジェクト
- * @param {Session} session セッションオブジェクト
- * @param {string} newToken 新しいアクセストークン
- * @return {Promise<{ isAuthenticated: boolean; userProfile: UserProfile | null; token: string | null; redirectResponse: Response; session: Session }>}
- */
-async function createReloadRedirectResponse(
-  request: Request,
-  session: Session,
-  newToken: string
-): Promise<{
-  isAuthenticated: boolean;
-  userProfile: UserProfile | null;
-  token: string | null;
-  redirectResponse: Response;
-  session: Session;
-}> {
-  console.log("Redirecting to current URL to retry with new token.");
-  // セッションには新しいトークンがセットされている前提
-  return {
-    isAuthenticated: true, // トークンは取得/更新された
-    userProfile: null, // プロファイルは次のリクエストで取得
-    token: newToken,
-    redirectResponse: redirect(request.url, {
-      headers: { "Set-Cookie": await commitSession(session) },
-    }),
-    session,
-  };
-}
-
-/**
- * 認証とユーザープロファイルの取得を行う
- * @param {Request} request リクエストオブジェクト
- * @param {Session} session セッションオブジェクト
- * @return {Promise<{ isAuthenticated: boolean; userProfile: UserProfile | null; token: string | null; redirectResponse: Response | null; session: Session }>}
- */
-export async function authenticateAndLoadUserProfile(
-  request: Request,
-  session: Session
-): Promise<{
-  isAuthenticated: boolean;
-  userProfile: UserProfile | null;
-  token: string | null;
-  redirectResponse: Response | null;
-  session: Session;
-}> {
-  let token = session.get("token") as string | null;
-  const refreshToken = session.get("refreshToken") as string | null;
-
-  console.log("ここまで3")
-
-  // 1. アクセストークンがない場合
-  if (!token) {
-    if (refreshToken) {
-      // 1a. リフレッシュトークンがある場合：トークンリフレッシュを試みる
-      console.log(
-        "No access token, attempting token refresh in authenticateAndLoadUserProfile..."
-      );
-      try {
-        const newTokens = await refreshAccessToken(refreshToken);
-        session.set("token", newTokens.accessToken);
-        session.set("refreshToken", newTokens.refreshToken);
-        token = newTokens.accessToken; // 後続処理のために更新
-        return await createReloadRedirectResponse(
-          request,
-          session,
-          newTokens.accessToken
-        );
-      } catch (error) {
-        console.error(
-          "Initial token refresh failed, redirecting to login:",
-          error
-        );
-        // リフレッシュ失敗時はセッションからトークンを削除してログインへ
-        return await createLoginRedirectResponse(session, true);
-      }
-    } else {
-      // 1b. リフレッシュトークンもない場合：ログインページへ
-      console.log(
-        "No tokens found, redirecting to login from authenticateAndLoadUserProfile. Clearing session."
-      );
-      // 念のためセッションをクリアしてログインへリダイレクト
-      return await createLoginRedirectResponse(session, true);
-    }
-  }
-
-  // 2. アクセストークンがある場合：ユーザープロファイルを取得
+async function fetchUserProfile(token: string): Promise<UserProfile | null> {
   try {
-    console.log("Fetching user profile with access token:", token);
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/user/me`,
       {
@@ -171,48 +46,160 @@ export async function authenticateAndLoadUserProfile(
     );
 
     if (response.ok) {
-      const userProfile: UserProfile = await response.json();
-      return {
-        isAuthenticated: true,
-        userProfile,
-        token,
-        redirectResponse: null,
-        session,
-      };
+      return await response.json();
     }
+    return null;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  }
+}
 
-    // プロファイル取得失敗
-    if (response.status === 401 && refreshToken) {
-      // 2a. 401エラーでリフレッシュトークンがある場合：再度リフレッシュを試みる
-      console.log("/user/me returned 401, attempting token refresh...");
+/**
+ * 認証状態を確認し、必要に応じてトークンをリフレッシュする
+ */
+export async function authenticate(
+  request: Request,
+  session: Session
+): Promise<AuthResult> {
+  // 公開パスのチェック
+  const url = new URL(request.url);
+  const publicPaths = ['/', '/login', '/landing', '/auth/success', '/logout'];
+  const isPublicPath = publicPaths.includes(url.pathname);
+
+  // セッションからトークンを取得
+  let token = session.get("token") as string | null;
+  const refreshToken = session.get("refreshToken") as string | null;
+
+  // 公開パスの場合は簡易チェックのみ
+  if (isPublicPath) {
+    return {
+      isAuthenticated: !!token,
+      userProfile: null,
+      session,
+      redirectTo: null
+    };
+  }
+
+  // トークンがない場合
+  if (!token) {
+    // リフレッシュトークンがある場合はリフレッシュを試みる
+    if (refreshToken) {
       try {
         const newTokens = await refreshAccessToken(refreshToken);
         session.set("token", newTokens.accessToken);
         session.set("refreshToken", newTokens.refreshToken);
-        token = newTokens.accessToken; // 後続処理のために更新
-        return await createReloadRedirectResponse(
-          request,
+        
+        // 現在のURLに再リダイレクト（新しいトークンで再試行）
+        return {
+          isAuthenticated: true,
+          userProfile: null,
           session,
-          newTokens.accessToken
-        );
-      } catch (refreshError) {
-        console.error(
-          "Token refresh failed after /user/me 401, redirecting to login:",
-          refreshError
-        );
-        return await createLoginRedirectResponse(session, true);
+          redirectTo: request.url
+        };
+      } catch (error) {
+        // リフレッシュ失敗時はログインへ
+        session.unset("token");
+        session.unset("refreshToken");
+        session.flash("toastMessage", JSON.stringify({ 
+          type: "error", 
+          message: "セッションが切れました。再度ログインしてください。" 
+        }));
+        
+        return {
+          isAuthenticated: false,
+          userProfile: null,
+          session,
+          redirectTo: "/login"
+        };
       }
     } else {
-      // 2b. 401以外のエラー、またはリフレッシュトークンがない401
-      const errorBody = await response.text();
-      console.error(
-        `Failed to fetch user profile (status: ${response.status}), or no refresh token for 401. Error: ${errorBody}. Redirecting to login.`
-      );
-      return await createLoginRedirectResponse(session, true);
+      // リフレッシュトークンもない場合はログインへ
+      session.flash("toastMessage", JSON.stringify({ 
+        type: "error", 
+        message: "ログインが必要です。" 
+      }));
+      
+      return {
+        isAuthenticated: false,
+        userProfile: null,
+        session,
+        redirectTo: "/login"
+      };
     }
-  } catch (error) {
-    // fetch自体が失敗した場合など (ネットワークエラー等)
-    console.error("Error fetching user profile (network or other):", error);
-    return await createLoginRedirectResponse(session, true);
   }
+
+  // ユーザープロファイルを取得
+  const userProfile = await fetchUserProfile(token);
+  
+  // プロファイル取得に失敗した場合
+  if (!userProfile) {
+    // 401エラーの可能性があるのでリフレッシュを試みる
+    if (refreshToken) {
+      try {
+        const newTokens = await refreshAccessToken(refreshToken);
+        session.set("token", newTokens.accessToken);
+        session.set("refreshToken", newTokens.refreshToken);
+        
+        // 現在のURLに再リダイレクト（新しいトークンで再試行）
+        return {
+          isAuthenticated: true,
+          userProfile: null,
+          session,
+          redirectTo: request.url
+        };
+      } catch (error) {
+        // リフレッシュ失敗時はログインへ
+        session.unset("token");
+        session.unset("refreshToken");
+        session.flash("toastMessage", JSON.stringify({ 
+          type: "error", 
+          message: "認証に失敗しました。再度ログインしてください。" 
+        }));
+        
+        return {
+          isAuthenticated: false,
+          userProfile: null,
+          session,
+          redirectTo: "/login"
+        };
+      }
+    } else {
+      // リフレッシュトークンがない場合はログインへ
+      session.unset("token");
+      session.flash("toastMessage", JSON.stringify({ 
+        type: "error", 
+        message: "認証に失敗しました。再度ログインしてください。" 
+      }));
+      
+      return {
+        isAuthenticated: false,
+        userProfile: null,
+        session,
+        redirectTo: "/login"
+      };
+    }
+  }
+
+  // 認証成功
+  return {
+    isAuthenticated: true,
+    userProfile,
+    session,
+    redirectTo: null
+  };
+}
+
+/**
+ * 認証結果からリダイレクトレスポンスを生成する（必要な場合）
+ */
+export async function createRedirectResponse(
+  authResult: AuthResult
+): Promise<Response | null> {
+  if (authResult.redirectTo) {
+    return redirect(authResult.redirectTo, {
+      headers: { "Set-Cookie": await commitSession(authResult.session) }
+    });
+  }
+  return null;
 }

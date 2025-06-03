@@ -1,6 +1,6 @@
 import type { Route } from "./+types/scrapying";
 import { useNavigate, useBlocker, useMatches } from "react-router";
-import { getSession, getSelectedProjectId, commitSession } from "~/server/session.server";
+import { getSession, getSelectedProjectIdFromSession, commitSession } from "~/server/session.server";
 import { redirect } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,7 +24,6 @@ import { ScrapingTabs } from "~/components/scraping/ScrapingTabs";
 import { ScrapingFormTabContent } from "~/components/scraping/ScrapingFormTabContent";
 import { ScrapingResultsTabContent } from "~/components/scraping/ScrapingResultsTabContent";
 import type { ArticleItem } from "~/types/article";
-import { authenticateAndLoadUserProfile } from "~/server/auth.server";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -35,7 +34,7 @@ export function meta({ }: Route.MetaArgs) {
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const session = await getSession(request.headers.get("Cookie"));
-  const { token } = await authenticateAndLoadUserProfile(request, session);
+  const { token } = session.get("token") || {};
   if (!token) {
     // トークンがない場合はログインページへリダイレクト
     redirect("/login", {
@@ -45,7 +44,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     });
   }
 
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   const projectId = parseInt(selectedProjectIdString, 10);
 

@@ -21,21 +21,12 @@ export const commitSession = sessionStorage.commitSession;
 export const destroySession = sessionStorage.destroySession;
 
 /**
- * リクエストから選択されているプロジェクトIDを取得します。
- * @param request RemixのRequestオブジェクト
+ * セッションから選択されているプロジェクトIDを取得します。
+ * @param session RemixのSessionオブジェクト
  * @return 選択されたプロジェクトID (文字列) または null
- * @throws リダイレクト: プロジェクトが選択されていない場合は新規作成ページへリダイレクトします。
  */
-export async function getSelectedProjectId(request: Request): Promise<string> {
-  const session = await getSession(request.headers.get("Cookie"));
-  const selectedProjectId = session.get("selectedProjectId");
-
-  // プロジェクトが選択されていない場合は新規作成ページへリダイレクト
-  if (!selectedProjectId) {
-    throw redirect("/projects/new");
-  }
-
-  return selectedProjectId;
+export function getSelectedProjectIdFromSession(session: any): string | null {
+  return session.get("selectedProjectId") || null;
 }
 
 /**

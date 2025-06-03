@@ -1,10 +1,10 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/scraping-results";
 import { useLoaderData, useNavigate, useActionData, Form, useNavigation, useMatches } from "react-router"; // useNavigation, useMatches をインポート
 import { getSession } from "~/server/session.server";
 // import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
 import { Button } from "~/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { getSelectedProjectId } from "~/server/session.server"; // getSelectedProjectId をインポート
+import { getSelectedProjectIdFromSession } from "~/server/session.server"; // getSelectedProjectId をインポート
 import { redirect } from "react-router"; // redirect をインポート
 import { useAtom } from "jotai";
 import { articlesAtom } from "~/atoms/article";
@@ -34,7 +34,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   // loader 自体を削除または空のオブジェクトを返すようにしても良い。
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   if (!token) {
     return redirect("/login");
@@ -97,7 +97,7 @@ type ActionResponse = { ok: true } | { ok: false; error: string };
 export const action = async ({ request }: Route.ActionArgs): Promise<Response> => {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  const selectedProjectIdString = await getSelectedProjectId(request);
+  const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
   if (!token) {
     // 通常はroot loaderで処理されるが、念のため
