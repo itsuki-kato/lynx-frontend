@@ -19,11 +19,12 @@ interface StartScrapingParams extends ExternalStartScrapingParams {
 export const startScrapingApi = async ({
   startUrl,
   targetClass,
-  token,
   signal,
 }: StartScrapingParams): Promise<Response> => {
   // 環境変数からAPIのベースURLを取得（デフォルトは相対パス）
   const apiBaseUrl = import.meta.env.SCRAPY_API_BASE_URL || "";
+  // 環境変数からスクレイピングAPIトークンを取得
+  const scrapingApiToken = import.meta.env.VITE_SCRAPING_API_TOKEN;
 
   // 完全なURLを構築
   const apiUrl = `${apiBaseUrl}/crawl/`;
@@ -37,7 +38,7 @@ export const startScrapingApi = async ({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(scrapingApiToken && { Authorization: `Bearer ${scrapingApiToken}` }),
     },
     body: JSON.stringify({
       start_url: startUrl,
