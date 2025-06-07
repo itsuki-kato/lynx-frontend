@@ -1,14 +1,13 @@
 import type { Route } from "./+types/content";
-import { useLoaderData, useNavigate, useMatches } from "react-router"; // useMatches をインポート
-import { getSession, getSelectedProjectIdFromSession } from "~/server/session.server"; // 正しい関数名をインポート
-// import { requireAuth } from "~/utils/auth.server"; // requireAuth は削除
+import { useLoaderData, useNavigate } from "react-router";
+import { getSession, getSelectedProjectIdFromSession, commitSession } from "~/server/session.server";
 import { Button } from "~/components/ui/button";
-import type { ArticleItem } from "~/types/article";
+import type { ArticleItem, ContentLoaderData, PaginatedArticlesResponse } from "~/types/article";
 import { useState, useEffect } from "react";
 import { ScrapingResultModal } from "~/components/scraping/ScrapingResultModal";
 import { useToast } from "~/hooks/use-toast";
-import { ArticleGrid } from "~/components/common/ArticleGrid"; // ArticleGridをインポート
-import { redirect } from "react-router"; // redirect をインポート
+import { ArticleGrid } from "~/components/common/ArticleGrid";
+import { redirect } from "react-router";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -17,26 +16,24 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-// loaderが返すデータの型を定義
-interface ContentLoaderData {
-  articles: ArticleItem[];
-  projectId: number | null;
-  error: string | null;
-}
-
 export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoaderData | Response> => {
   const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("token");
+  const token = session.get("token") as string | null;
   const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
+  // トークンが無い場合はログイン画面にリダイレクト
   if (!token) {
     console.error("No token found in content loader, should have been redirected by root.");
-    return redirect("/login");
+    return redirect("/login", {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    });
   }
 
   if (!selectedProjectIdString) {
     console.error("No project selected in content loader.");
-    return redirect("/projects/new"); 
+    return redirect("/projects/new");
   }
   const projectId = parseInt(selectedProjectIdString, 10);
   if (isNaN(projectId)) {
@@ -45,7 +42,8 @@ export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoad
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/detailed`, {
+    const initialTake = 10; // 初期表示件数
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/feed?take=${initialTake}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -55,29 +53,44 @@ export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoad
       throw new Error(`API error: ${response.status}`);
     }
 
-    const articles = await response.json();
-    return { articles, projectId, error: null };
+    const data: PaginatedArticlesResponse = await response.json();
+    return {
+      articles: data.articles,
+      projectId,
+      initialHasNextPage: data.hasNextPage,
+      initialNextCursor: data.nextCursor,
+      error: null,
+      token: token
+    };
   } catch (error) {
     console.error("API fetch error:", error);
     const currentProjectId = parseInt(selectedProjectIdString || "", 10);
-    return { articles: [], projectId: isNaN(currentProjectId) ? null : currentProjectId, error: error instanceof Error ? error.message : "データの取得に失敗しました" };
+    return {
+      articles: [],
+      projectId: isNaN(currentProjectId) ? null : currentProjectId,
+      initialHasNextPage: false,
+      initialNextCursor: null,
+      error: error instanceof Error ? error.message : "データの取得に失敗しました",
+      token: token
+    };
   }
 };
 
-export default function Content() {
-  const loaderData = useLoaderData<ContentLoaderData>(); // 型を修正
-  // loaderDataがResponseインスタンスである可能性は、root loaderでリダイレクトされるため低いが、型安全のためにチェック
-  if (loaderData instanceof Response) {
-    // この場合、UIは表示されないはず（リダイレクトされる）
-    console.error("Content route received a Response object from loader, this should not happen if redirects work correctly.");
-    return null; 
-  }
-  const { articles, projectId, error } = loaderData;
+export default function Content({loaderData}: Route.ComponentProps) {
+  const {
+    articles: initialArticles,
+    projectId,
+    initialHasNextPage,
+    initialNextCursor,
+    error,
+    token
+  } = loaderData;
 
   const navigate = useNavigate();
-  const matches = useMatches();
-  const rootData = matches.find(match => match.id === 'root')?.data as { userProfile?: { name?: string } } | undefined;
-  const userName = rootData?.userProfile?.name;
+  const [displayedArticles, setDisplayedArticles] = useState<ArticleItem[]>(initialArticles);
+  const [hasNextPage, setHasNextPage] = useState<boolean>(initialHasNextPage);
+  const [nextCursor, setNextCursor] = useState<string | null | undefined>(initialNextCursor);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [selectedItem, setSelectedItem] = useState<ArticleItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -88,14 +101,47 @@ export default function Content() {
     if (error) {
       toast({
         title: "エラー",
-        description: typeof error === 'string' ? error : "不明なエラーが発生しました。", // error の型を考慮
+        description: typeof error === 'string' ? error : "不明なエラーが発生しました。",
         variant: "destructive",
       });
     }
   }, [error, toast]);
 
-  // 検索フィルター
-  const filteredArticles = articles.filter((article: ArticleItem) => {
+  const fetchMoreArticles = async () => {
+    if (!hasNextPage || isLoadingMore || !projectId || !nextCursor || !token) return;
+
+    setIsLoadingMore(true);
+    try {
+      const take = 20; // 一度に読み込む件数
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/feed?take=${take}&cursor=${nextCursor}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data: PaginatedArticlesResponse = await response.json();
+      setDisplayedArticles(prevArticles => [...prevArticles, ...data.articles]);
+      setHasNextPage(data.hasNextPage);
+      setNextCursor(data.nextCursor);
+    } catch (err) {
+      console.error("Failed to fetch more articles:", err);
+      toast({
+        title: "エラー",
+        description: "記事の追加読み込みに失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // 検索フィルター (displayedArticles を元にする)
+  const filteredArticles = displayedArticles.filter((article: ArticleItem) => {
     const searchLower = searchTerm.toLowerCase();
     return (
       article.metaTitle?.toLowerCase().includes(searchLower) ||
@@ -115,11 +161,14 @@ export default function Content() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-10">
           <div>
-          <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold">
               コンテンツ管理
-          </h1>
+            </h1>
             <p className="mt-2 text-muted-foreground">
-              保存された{articles.length}件のコンテンツを表示します
+              {searchTerm
+                ? `検索結果: ${filteredArticles.length} 件`
+                : `コンテンツ一覧 (現在 ${displayedArticles.length} 件表示中${hasNextPage ? '、さらに読み込めます' : ''})`
+              }
             </p>
           </div>
 
@@ -175,6 +224,15 @@ export default function Content() {
           noDataButtonLink="/scraping"
           searchTerm={searchTerm} // 検索語を渡す
         />
+
+        {/* もっと見るボタン */}
+        {hasNextPage && !searchTerm && (
+          <div className="mt-8 text-center">
+            <Button onClick={fetchMoreArticles} disabled={isLoadingMore} variant="outline">
+              {isLoadingMore ? "読み込み中..." : "もっと見る"}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* 詳細表示モーダル */}

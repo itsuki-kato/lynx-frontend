@@ -36,8 +36,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   const session = await getSession(request.headers.get("Cookie"));
   const { token } = session.get("token") || {};
   if (!token) {
-    // トークンがない場合はログインページへリダイレクト
-    redirect("/login", {
+    // トークンがない場合はログイン画面にリダイレクト
+    return redirect("/login", {
       headers: {
         "Set-Cookie": await commitSession(session),
       },

@@ -78,3 +78,29 @@ export interface ArticleItem {
   keywords?: KeywordArticleItem[];
   jsonLd?: any[]; // 構造化データ（JSON-LD）
 }
+
+// --- ここから新しい型定義を追加 ---
+
+/**
+ * API: /articles/project/:projectId/feed のレスポンス型
+ * API仕様書: .clinerules/api/article.md の PaginatedArticlesResponseDto に対応
+ * 記事の型は既存の ArticleItem を使用します。
+ */
+export interface PaginatedArticlesResponse {
+  articles: ArticleItem[];
+  hasNextPage: boolean;
+  nextCursor?: string | null;
+}
+
+/**
+ * content.tsx の loader が返すデータの型
+ * 記事の型は既存の ArticleItem を使用します。
+ */
+export interface ContentLoaderData {
+  articles: ArticleItem[]; // 初期表示の記事リスト
+  projectId: number | null;
+  initialHasNextPage: boolean;
+  initialNextCursor?: string | null;
+  error: string | null;
+  token?: string | null; // クライアントサイドでのAPI呼び出し用にトークンを渡す
+}

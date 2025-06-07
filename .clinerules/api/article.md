@@ -121,6 +121,48 @@
     - **401 Unauthorized:** 認証トークンが無効または不足。
     - **404 Not Found:** 指定された`id`の記事が見つからない場合。
 
+### 5. プロジェクトに紐づく記事のページネーション取得 (フィード形式)
+
+- **Method:** `GET`
+- **Path:** `/articles/project/:projectId/feed`
+- **概要:** 指定したプロジェクトIDに紐づく記事をページネーション形式で取得します。「もっと見る」機能のような、連続的なデータ読み込みに適しています。
+- **認証:** 必要 (Bearer Token - `JwtAuthGuard` を使用)
+- **パスパラメータ:**
+    - `projectId` (number, **required**): 記事一覧を取得するプロジェクトのID
+- **クエリパラメータ:**
+    - `take` (number, optional, default: 20): 一度に取得する記事の件数。
+    - `cursor` (number, optional): 前回のレスポンスで返された `nextCursor` の値（記事ID）。初回リクエスト時は指定しません。
+- **レスポンス:**
+    - **200 OK:** ページネーションされた記事一覧取得成功
+        - Content-Type: `application/json`
+        - Schema: `PaginatedArticlesResponseDto`
+          ```json
+          {
+            "articles": [
+              // ArticleResponseDto の配列 (詳細はDTO定義参照)
+              {
+                "id": 102,
+                "projectId": 1,
+                "articleUrl": "https://example.com/article102",
+                "metaTitle": "記事タイトル102",
+                // ... その他の ArticleResponseDto のフィールド
+              },
+              {
+                "id": 101,
+                "projectId": 1,
+                "articleUrl": "https://example.com/article101",
+                "metaTitle": "記事タイトル101",
+                // ... その他の ArticleResponseDto のフィールド
+              }
+            ],
+            "hasNextPage": true,
+            "nextCursor": "100" // 次のリクエストで使用する記事ID (文字列)
+          }
+          ```
+    - **400 Bad Request:** クエリパラメータの型が不正な場合 (例: `take` や `cursor` が数値でない)。
+    - **401 Unauthorized:** 認証トークンが無効または不足。
+    - **404 Not Found:** 指定された`projectId`のプロジェクトが見つからない場合。
+
 ---
 
 ## DTO定義
@@ -226,3 +268,62 @@ export class ArticleMinimalResponseDto {
 
 `ArticleResponseDto` は記事の詳細情報を扱う際に使用されます。
 DTO定義の詳細は `src/article/dto/article-response.dto.ts` を参照してください。
+
+### `ListPaginatedArticlesDto` (クエリパラメータ用)
+
+```typescript
+// src/article/dto/list-paginated-articles.dto.ts
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Min } from 'class-validator';
+
+export class ListPaginatedArticlesDto {
+  @ApiPropertyOptional({
+    description: '前回のレスポンスで返されたカーソル (記事ID)',
+    type: Number,
+    example: 101,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  cursor?: number;
+
+  @ApiProperty({
+    description: '取得件数',
+    type: Number,
+    default: 20,
+    example: 10,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  take: number = 20;
+}
+```
+
+### `PaginatedArticlesResponseDto` (レスポンス用)
+
+```typescript
+// src/article/dto/paginated-articles-response.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+import { ArticleResponseDto } from './article-response.dto';
+
+export class PaginatedArticlesResponseDto {
+  @ApiProperty({
+    type: () => [ArticleResponseDto],
+    description: '記事の配列',
+  })
+  articles: ArticleResponseDto[];
+
+  @ApiProperty({ description: '次に読み込むデータが存在するか', type: Boolean })
+  hasNextPage: boolean;
+
+  @ApiProperty({
+    description: '次のリクエストで使用するカーソル (記事ID、文字列型)',
+    required: false,
+    type: String,
+    example: '100', 
+  })
+  nextCursor?: string;
+}
+```
