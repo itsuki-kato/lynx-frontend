@@ -17,7 +17,6 @@ import { Textarea } from '~/components/ui/textarea';
 import { getSession, commitSession } from '~/server/session.server';
 import type { ProjectResponseDto } from '~/types/project';
 import { PROJECTS_API_ENDPOINT } from '~/config/constants';
-import { createLoginRedirectResponse } from '~/server/auth.server';
 import type { Route } from '../+types/logout';
 
 // ProjectActionData 型の定義
@@ -64,8 +63,11 @@ export async function action({ request }: Route.ActionArgs) {
   if (!token) {
     console.error("Action called without token, should have been caught by root loader.");
     // トークンがない場合はログインページへリダイレクト
-    const loginRedirect = await createLoginRedirectResponse(session, true);
-    return loginRedirect.redirectResponse;
+    return redirect('/login', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    });
   }
 
   const formData = await request.formData();
