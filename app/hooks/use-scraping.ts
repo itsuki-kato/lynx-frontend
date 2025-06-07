@@ -21,7 +21,7 @@ import { processScrapingStream } from "~/utils/stream-processor.client";
  * @param token - 認証トークン
  * @returns スクレイピング開始・中断機能を提供するオブジェクト
  */
-export function useScraping(token: string | null) {
+export function useScraping(token?: string | null) {
   // Jotai atomを使用した状態管理
   const [, setCrawlStatus] = useAtom(crawlStatusAtom);
   const [, setProgressInfo] = useAtom(progressInfoAtom);

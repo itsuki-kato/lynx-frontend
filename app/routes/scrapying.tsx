@@ -34,21 +34,21 @@ export function meta({ }: Route.MetaArgs) {
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const session = await getSession(request.headers.get("Cookie"));
-  const { token } = session.get("token") || {};
-  if (!token) {
-    // トークンがない場合はログイン画面にリダイレクト
-    return redirect("/login", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
-  }
-
   const selectedProjectIdString = getSelectedProjectIdFromSession(session);
 
+  if (!selectedProjectIdString) {
+    console.error("No project selected in loader.");
+    return redirect(
+      "/projects/new",
+      {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      }
+    );
+  }
   const projectId = parseInt(selectedProjectIdString, 10);
-
-  return { token, projectId };
+  return { projectId };
 };
 
 /**
@@ -56,12 +56,12 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
  */
 export default function Scrapying({ loaderData }: Route.ComponentProps) {
   // loaderで取得したデータを使用
-  const { token, projectId } = loaderData;
+  const { projectId } = loaderData;
 
   const navigate = useNavigate();
 
   // useScraping フックを使用してスクレイピング機能を取得
-  const { startScraping, cancelScraping } = useScraping(token);
+  const { startScraping, cancelScraping } = useScraping();
 
   const [crawlStatus] = useAtom(crawlStatusAtom);
   const [progressInfo] = useAtom(progressInfoAtom);
