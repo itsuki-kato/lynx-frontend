@@ -1,8 +1,7 @@
 import type { Route } from './+types/dashboard';
-import { useLoaderData } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { authenticate } from '~/server/auth.server';
-import { getSession, commitSession, getSelectedProjectIdFromSession } from '~/server/session.server';
+import { getSession, getSelectedProjectIdFromSession } from '~/server/session.server';
 import type { UserProfile, Project } from '~/types/user';
 import type { ArticleItem } from '~/types/article';
 import type { Keyword } from '~/types/keyword';
