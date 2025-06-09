@@ -72,7 +72,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // 公開パスの場合はプロジェクト選択をスキップ
   const url = new URL(request.url);
-  const publicPaths = ['/', '/login', '/landing', '/auth/success', '/logout', '/projects/new'];
+  const publicPaths = ['/login', '/landing', '/auth/success', '/logout', '/projects/new'];
   if (publicPaths.includes(url.pathname)) {
     return { isAuthenticated, userProfile, selectedProjectId: null };
   }

@@ -64,7 +64,7 @@ export async function authenticate(
 ): Promise<AuthResult> {
   // 公開パスのチェック
   const url = new URL(request.url);
-  const publicPaths = ['/', '/login', '/landing', '/auth/success', '/logout'];
+  const publicPaths = ['/login', '/landing', '/auth/success', '/logout'];
   const isPublicPath = publicPaths.includes(url.pathname);
 
   // セッションからトークンを取得
