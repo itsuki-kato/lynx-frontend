@@ -1,5 +1,5 @@
 import type { Route } from "./+types/scrapying";
-import { useNavigate, useBlocker, useMatches } from "react-router";
+import { useNavigate, useBlocker } from "react-router";
 import { getSession, getSelectedProjectIdFromSession, commitSession } from "~/server/session.server";
 import { redirect } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,7 @@ import {
 import type { CrawlStatus } from '~/types/scraping';
 import { useScraping } from "~/hooks/use-scraping";
 import { ScrapingStatus } from "~/components/scraping/ScrapingStatus";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { ScrapingPageHeader } from "~/components/scraping/ScrapingPageHeader";
@@ -24,6 +24,7 @@ import { ScrapingTabs } from "~/components/scraping/ScrapingTabs";
 import { ScrapingFormTabContent } from "~/components/scraping/ScrapingFormTabContent";
 import { ScrapingResultsTabContent } from "~/components/scraping/ScrapingResultsTabContent";
 import type { ArticleItem } from "~/types/article";
+import { NavigationBlocker } from "~/components/scraping/NavigationBlocker";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -70,10 +71,32 @@ export default function Scrapying({ loaderData }: Route.ComponentProps) {
   const [globalScrapingResults] = useAtom(articlesAtom);
 
   // スクレイピング中はページ遷移をブロック
-  useBlocker(
+  const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       crawlStatus === 'running' && currentLocation.pathname !== nextLocation.pathname
   );
+
+  // スクレイピング中のブラウザリロード/クローズをブロック
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (crawlStatus === 'running') {
+        event.preventDefault();
+        // Chrome では returnValue の設定が必要
+        event.returnValue = '';
+      }
+    };
+
+    if (crawlStatus === 'running') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    } else {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    // クリーンアップ関数
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [crawlStatus]);
 
   // Formの初期値とバリデーションスキーマを設定
   const form = useForm<ScrapyRequest>({
@@ -105,6 +128,7 @@ export default function Scrapying({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col py-12 px-4">
+      <NavigationBlocker blocker={blocker} />
       <ScrapingPageHeader />
 
       {errorMessage && (

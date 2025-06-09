@@ -10,6 +10,8 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { ChevronsUpDown, PlusCircle } from 'lucide-react';
 import type { UserProfile } from "~/types/user";
+import { useAtom } from 'jotai';
+import { crawlStatusAtom } from '~/atoms/scraping';
 
 interface ProjectSelectorProps {
   userProfile: UserProfile | null;
@@ -23,6 +25,7 @@ interface ProjectSelectorProps {
  */
 export function ProjectSelector({ userProfile, selectedProjectId }: ProjectSelectorProps) {
   const fetcher = useFetcher();
+  const [crawlStatus] = useAtom(crawlStatusAtom);
 
   // ユーザープロファイルが存在しない場合は何も表示しない (またはログインを促すメッセージなど)
   if (!userProfile) {
@@ -37,7 +40,8 @@ export function ProjectSelector({ userProfile, selectedProjectId }: ProjectSelec
       <div className="ml-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="w-[200px] justify-between">
+            {/* クローリング中は操作させない */}
+            <Button variant="outline" size="sm" className="w-[200px] justify-between" disabled={crawlStatus === 'running'}>
               <span className="truncate max-w-[150px]">
                 プロジェクトなし
               </span>
@@ -81,7 +85,7 @@ export function ProjectSelector({ userProfile, selectedProjectId }: ProjectSelec
     <div className="ml-4">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="w-[200px] justify-between">
+          <Button variant="outline" size="sm" className="w-[200px] justify-between" disabled={crawlStatus === 'running'}>
             <span className="truncate max-w-[150px]">
               {currentProject?.projectUrl || "プロジェクト選択"}
             </span>
@@ -95,7 +99,7 @@ export function ProjectSelector({ userProfile, selectedProjectId }: ProjectSelec
             <DropdownMenuItem
               key={project.id}
               onSelect={() => handleSelectProject(project.id.toString())}
-              disabled={project.id.toString() === selectedProjectId}
+              disabled={project.id.toString() === selectedProjectId || crawlStatus === 'running'}
             >
               {project.projectName} ({project.projectUrl})
             </DropdownMenuItem>
