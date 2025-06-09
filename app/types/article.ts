@@ -76,7 +76,9 @@ export interface ArticleItem {
   linkedFrom?: InternalLinkItem[];
   headings?: HeadingItem[];
   keywords?: KeywordArticleItem[];
-  jsonLd?: any[]; // 構造化データ（JSON-LD）
+  jsonLd?: any[] | null; // 構造化データ（JSON-LD）、nullも許容
+  createdAt?: string; // または Date
+  updatedAt?: string; // または Date
 }
 
 // --- ここから新しい型定義を追加 ---

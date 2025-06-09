@@ -1,7 +1,8 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-  index("routes/landing.tsx"), // LPページ
+  index("routes/dashboard.tsx"), // ダッシュボードページ
+  route("landing", "routes/landing.tsx"), // LPページ
   route("login", "routes/login.tsx"), // ログインページ
   route("logout", "routes/logout.tsx"), // ログアウトページ
   route("auth/success", "routes/auth/success.tsx"), // 認証成功ページ
