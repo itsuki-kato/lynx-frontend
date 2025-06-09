@@ -127,7 +127,7 @@ export default function Scrapying({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="flex flex-col py-12 px-4">
+    <div className="container mx-auto py-8">
       <NavigationBlocker blocker={blocker} />
       <ScrapingPageHeader />
 
@@ -141,7 +141,7 @@ export default function Scrapying({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 w-2/3 mx-auto">
         <div className="container max-w-7xl mx-auto py-3">
           <ScrapingStatus
             crawlStatus={crawlStatus}
@@ -151,7 +151,7 @@ export default function Scrapying({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="flex-grow py-4 w-full overflow-auto">
+      <div className="flex-grow my-8 w-2/3 mx-auto overflow-auto">
         <div className="container max-w-7xl mx-auto">
           <ScrapingTabs
             defaultTab={defaultTab}

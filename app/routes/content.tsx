@@ -157,8 +157,8 @@ export default function Content({loaderData}: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="container py-8 mx-auto">
+      <div className="mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-10">
           <div>
             <h1 className="text-2xl font-bold">

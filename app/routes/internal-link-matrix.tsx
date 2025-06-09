@@ -239,17 +239,17 @@ export default function InternalLinkMatrixRoute() {
     // sidebarMode は閉じるときにリセットしなくても良いかもしれないが、念のため
     setSidebarMode('articleDetail');
   };
-  
+
   // サイドバーの幅が変更されたときの処理
   const handleSidebarWidthChange = useCallback((width: number) => {
     setSidebarWidth(width);
   }, []);
 
   return (
-    <div className="flex flex-col py-12 px-4 max-w-7xl mx-auto">
+    <div className="container mx-auto py-8">
       {/* ページヘッダー（固定表示されない） */}
       <div className="container max-w-7xl">
-        <h1 className="text-2xl font-bold">内部リンク マトリクス</h1>
+        <h1 className="mb-6 text-2xl font-bold">内部リンク マトリクス</h1>
         <p className="text-muted-foreground">
           記事間の内部リンクの有無をマトリクス形式で表示します。行が被リンク記事、列が発リンク記事です。
         </p>
@@ -289,9 +289,9 @@ export default function InternalLinkMatrixRoute() {
 
       {/* マトリクス表示エリア */}
       <div className="flex-grow py-4 overflow-auto">
-        <div 
+        <div
           className="border rounded-lg overflow-x-auto h-full"
-          style={{ 
+          style={{
             width: '100%',
             marginLeft: 0,
             marginRight: isSidebarOpen ? `${sidebarWidth}px` : 0,

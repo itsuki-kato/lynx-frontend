@@ -123,7 +123,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="mb-6 text-3xl font-bold">ダッシュボード</h1>
+      <h1 className="mb-6 text-2xl font-bold">ダッシュボード</h1>
       <p className="mb-8 text-muted-foreground">
         ようこそ、{user?.name || 'ユーザー'}さん。プロジェクトの全体像を把握し、サイト管理を効率化しましょう。
       </p>
