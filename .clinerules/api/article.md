@@ -163,6 +163,45 @@
     - **401 Unauthorized:** 認証トークンが無効または不足。
     - **404 Not Found:** 指定された`projectId`のプロジェクトが見つからない場合。
 
+### 6. 複数記事の一括更新
+
+- **Method:** `PATCH`
+- **Path:** `/articles/bulk`
+- **概要:** 複数の記事情報を一括で更新します。リレーションは解除されません。
+- **認証:** 必要 (Bearer Token - `JwtAuthGuard` を使用)
+- **リクエストボディ:**
+    - Content-Type: `application/json`
+    - Schema: `BulkUpdateArticlesDto`
+      ```json
+      {
+        "projectId": 1,
+        "articles": [
+          {
+            "id": 101,
+            "articleUrl": "https://example.com/new-article-url",
+            "metaTitle": "新しいメタタイトル",
+            "metaDescription": "新しいメタディスクリプション",
+            "isIndexable": false,
+            "headings": "{\"h1\":[\"新しいH1\"], \"h2\":[\"新しいH2\"]}",
+            "jsonLd": "{\"@context\":\"https://schema.org\",\"@type\":\"WebPage\"}"
+          },
+          {
+            "id": 102,
+            "metaTitle": "記事102のタイトルのみ更新"
+          }
+        ]
+      }
+      ```
+      - `headings` および `jsonLd` はJSON文字列として送信します。
+      - 更新したいフィールドのみを `articles` 配列の各要素に含めます。
+- **レスポンス:**
+    - **200 OK:** 記事の一括更新成功
+        - Content-Type: `application/json`
+        - Schema: `ArticleResponseDto[]` (更新された記事の配列。詳細はDTO定義参照)
+    - **400 Bad Request:** リクエストボディの形式が不正な場合 (例: JSONパースエラー)。
+    - **401 Unauthorized:** 認証トークンが無効または不足。
+    - **404 Not Found:** 指定された記事IDの一部が見つからない、または指定されたプロジェクトに属していない場合。
+
 ---
 
 ## DTO定義
@@ -218,6 +257,79 @@ export class CreateArticleDetailDto {
   jsonLd?: any[];
 }
 ```
+
+### `BulkUpdateArticlesDto`
+
+```typescript
+// src/article/dto/bulk-update-articles.dto.ts
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsJSON,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ValidateNested,
+} from 'class-validator';
+
+class UpdateArticleItemDto {
+  @ApiProperty({ description: '記事ID' })
+  @IsInt()
+  @IsNotEmpty()
+  id: number;
+
+  @ApiPropertyOptional({ description: '記事URL' })
+  @IsOptional()
+  @IsUrl()
+  articleUrl?: string;
+
+  @ApiPropertyOptional({ description: 'メタタイトル' })
+  @IsOptional()
+  @IsString()
+  metaTitle?: string;
+
+  @ApiPropertyOptional({ description: 'メタディスクリプション' })
+  @IsOptional()
+  @IsString()
+  metaDescription?: string;
+
+  @ApiPropertyOptional({ description: 'インデックス可能か' })
+  @IsOptional()
+  @IsBoolean()
+  isIndexable?: boolean;
+
+  @ApiPropertyOptional({ description: '見出し構成 (JSON文字列形式)' })
+  @IsOptional()
+  @IsJSON()
+  headings?: string;
+
+  @ApiPropertyOptional({ description: '構造化データ (JSON文字列形式)' })
+  @IsOptional()
+  @IsJSON()
+  jsonLd?: string;
+}
+
+export class BulkUpdateArticlesDto {
+  @ApiProperty({ description: 'プロジェクトID' })
+  @IsInt()
+  @IsNotEmpty()
+  projectId: number;
+
+  @ApiProperty({
+    description: '更新する記事の配列',
+    type: [UpdateArticleItemDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateArticleItemDto)
+  articles: UpdateArticleItemDto[];
+}
+```
+
 ### `LinkStatusDto`, `InternalLinkDto`, `OuterLinkDto`, `HeadingDto`
 これらのDTOは `bulk-create-articles.dto.ts` 内で定義されており、`CreateArticleDetailDto` によってネストして使用されます。詳細な定義は `src/article/dto/bulk-create-articles.dto.ts` を参照してください。
 

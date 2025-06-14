@@ -95,6 +95,16 @@ export interface PaginatedArticlesResponse {
 }
 
 /**
+ * API: /articles/project/:projectId/minimal のレスポンス型
+ * API仕様書: .clinerules/api/article.md の ArticleMinimalResponseDto に対応
+ */
+export interface ArticleMinimalItem {
+  id: number;
+  articleUrl: string;
+  metaTitle: string | null;
+}
+
+/**
  * content.tsx の loader が返すデータの型
  * 記事の型は既存の ArticleItem を使用します。
  */

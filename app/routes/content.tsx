@@ -2,12 +2,13 @@ import type { Route } from "./+types/content";
 import { useLoaderData, useNavigate } from "react-router";
 import { getSession, getSelectedProjectIdFromSession, commitSession } from "~/server/session.server";
 import { Button } from "~/components/ui/button";
-import type { ArticleItem, ContentLoaderData, PaginatedArticlesResponse } from "~/types/article";
+import type { ArticleItem, ContentLoaderData, PaginatedArticlesResponse, ArticleMinimalItem } from "~/types/article";
 import { useState, useEffect } from "react";
 import { ScrapingResultModal } from "~/components/scraping/ScrapingResultModal";
 import { useToast } from "~/hooks/use-toast";
 import { ArticleGrid } from "~/components/common/ArticleGrid";
 import { redirect } from "react-router";
+import { MultipleScrapingDialog } from "~/components/scraping/MultipleScrapingDialog";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -76,7 +77,7 @@ export const loader = async ({ request }: Route.LoaderArgs): Promise<ContentLoad
   }
 };
 
-export default function Content({loaderData}: Route.ComponentProps) {
+export default function Content({ loaderData }: Route.ComponentProps) {
   const {
     articles: initialArticles,
     projectId,
@@ -95,6 +96,11 @@ export default function Content({loaderData}: Route.ComponentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+
+  // 複数URLスクレイピング機能用の状態
+  const [isMultipleScrapingDialogOpen, setIsMultipleScrapingDialogOpen] = useState(false);
+  const [allMinimalArticles, setAllMinimalArticles] = useState<ArticleMinimalItem[]>([]);
+  const [isLoadingMinimalArticles, setIsLoadingMinimalArticles] = useState(false);
 
   // エラーがあれば表示
   useEffect(() => {
@@ -156,6 +162,37 @@ export default function Content({loaderData}: Route.ComponentProps) {
     setIsDialogOpen(true);
   };
 
+  // minimal記事データを取得する関数
+  const fetchMinimalArticles = async () => {
+    if (!projectId || !token || allMinimalArticles.length > 0) return;
+
+    setIsLoadingMinimalArticles(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/articles/project/${projectId}/minimal`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data: ArticleMinimalItem[] = await response.json();
+      setAllMinimalArticles(data);
+    } catch (err) {
+      console.error("Failed to fetch minimal articles:", err);
+      toast({
+        title: "エラー",
+        description: "記事一覧の取得に失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingMinimalArticles(false);
+    }
+  };
+
   return (
     <div className="container py-8 mx-auto">
       <div className="mx-auto">
@@ -200,9 +237,23 @@ export default function Content({loaderData}: Route.ComponentProps) {
               className="text-foreground"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0011.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
               </svg>
               新規スクレイピング
+            </Button>
+
+            <Button
+              variant="default"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                setIsMultipleScrapingDialogOpen(true);
+                fetchMinimalArticles();
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              選択してスクレイピング
             </Button>
           </div>
         </div>
@@ -241,6 +292,18 @@ export default function Content({loaderData}: Route.ComponentProps) {
           item={selectedItem}
           isOpen={isDialogOpen}
           setOpen={setIsDialogOpen}
+        />
+      )}
+
+      {/* 複数URLスクレイピングダイアログ */}
+      {projectId && token && (
+        <MultipleScrapingDialog
+          isOpen={isMultipleScrapingDialogOpen}
+          onOpenChange={setIsMultipleScrapingDialogOpen}
+          allMinimalArticles={allMinimalArticles}
+          isLoadingMinimalArticles={isLoadingMinimalArticles}
+          projectId={projectId}
+          token={token}
         />
       )}
     </div>
