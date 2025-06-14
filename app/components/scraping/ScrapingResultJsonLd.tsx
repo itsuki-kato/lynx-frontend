@@ -15,20 +15,44 @@ interface Props {
  * JSON-LDの配列を受け取り、各アイテムを展開して表示する
  */
 export function ScrapingResultJsonLd({ item }: Props) {
+  let jsonLdData: any[] = [];
+
+  // item.jsonLd が文字列の場合はパースし、それ以外の場合はそのまま使用
+  if (typeof item.jsonLd === 'string') {
+    try {
+      jsonLdData = JSON.parse(item.jsonLd);
+    } catch (error) {
+      console.error("Failed to parse jsonLd string:", error);
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>構造化データ（JSON-LD）</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-500">構造化データの解析に失敗しました。</p>
+            <pre className="mt-2 bg-gray-100 p-2 rounded text-xs">{item.jsonLd}</pre>
+          </CardContent>
+        </Card>
+      );
+    }
+  } else if (Array.isArray(item.jsonLd)) {
+    jsonLdData = item.jsonLd;
+  }
+
   // JSON-LDデータがない場合は何も表示しない
-  if (!item.jsonLd || item.jsonLd.length === 0) {
+  if (!jsonLdData || jsonLdData.length === 0) {
     return null;
   }
 
   return (
-    <Card> {/* div を Card に変更 */}
-      <CardHeader className="flex flex-row items-center space-x-2 py-3"> {/* CardHeader を使用し、スタイル調整 */}
-        <Code className="h-5 w-5 text-muted-foreground" /> {/* text-muted-foreground を使用 */}
-        <CardTitle className="text-lg font-medium">構造化データ（JSON-LD）</CardTitle> {/* CardTitle を使用 */}
+    <Card>
+      <CardHeader className="flex flex-row items-center space-x-2 py-3">
+        <Code className="h-5 w-5 text-muted-foreground" />
+        <CardTitle className="text-lg font-medium">構造化データ（JSON-LD）</CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0"> {/* CardContent を使用し、padding調整 */}
+      <CardContent className="p-4 pt-0">
         <div className="space-y-6">
-          {item.jsonLd.map((jsonLdItem, index) => (
+          {jsonLdData.map((jsonLdItem, index) => (
             <JsonLdItem key={index} data={jsonLdItem} index={index} />
           ))}
         </div>
